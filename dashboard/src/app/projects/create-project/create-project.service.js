@@ -21,9 +21,10 @@ export class CreateProjectSvc {
      * Default constructor that is using resource
      * @ngInject for Dependency injection
      */
-    constructor ($timeout, $compile) {
+    constructor ($timeout, $compile, $location) {
         this.$timeout = $timeout;
         this.$compile = $compile;
+        this.$location = $location;
         this.init = false;
 
 
@@ -132,5 +133,13 @@ export class CreateProjectSvc {
     return link;
   }
 
+  redirectToIDE() {
+    let path = '/ide/' + this.getWorkspaceNamespace() + '/' + this.getWorkspaceOfProject();
+    this.$location.path(path);
+
+    if (this.getIDEAction()) {
+      this.$location.search({'action': this.getIDEAction()});
+    }
+  }
 
 }
