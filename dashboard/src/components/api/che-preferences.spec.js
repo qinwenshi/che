@@ -62,9 +62,15 @@ describe('ChePreferences', function () {
    * Check that we're able to fetch preferences
    */
   it('Fetch preferences', function () {
-      // providing request
-      // add default preferences on Http backend
-      let defaultPreferences = { pref1 : "value1", pref2 : "value2"};
+
+      //{testURL: {username: 'testName',  password: 'testPassword'}} converted to base64
+      let dockerCredentials = 'eyJ0ZXN0VVJMIjp7InVzZXJuYW1lIjoidGVzdE5hbWUiLCJwYXNzd29yZCI6InRlc3RQYXNzd29yZCJ9fQ==';
+      let defaultPreferences = {
+        pref1: 'value1',
+        pref2: 'value2',
+        dockerCredentials: dockerCredentials
+      };
+      // add preferences on Http backend
       cheBackend.addDefaultPreferences(defaultPreferences);
 
       // setup backend
@@ -79,11 +85,16 @@ describe('ChePreferences', function () {
       // flush command
       httpBackend.flush();
 
-      // now, check preferences
+      // now, check preferences and registries
       let preferences = factory.getPreferences();
+      let registries = factory.getRegistries();
 
-      expect(preferences["pref1"]).toEqual("value1");
-      expect(preferences["pref2"]).toEqual("value2");
+      expect(preferences['pref1']).toEqual('value1');
+      expect(preferences['pref2']).toEqual('value2');
+      expect(preferences['dockerCredentials']).toEqual(dockerCredentials);
+      expect(registries[0].url).toEqual('testURL');
+      expect(registries[0].username).toEqual('testName');
+      expect(registries[0].password).toEqual('testPassword');
     }
   );
 
@@ -91,7 +102,7 @@ describe('ChePreferences', function () {
    * Check that we're able to update preferences
    */
   it('Update preferences', function () {
-      let defaultPreferences = { pref1 : "value1" };
+      let defaultPreferences = { pref1 : 'value1' };
 
       // setup backend
       cheBackend.setup();
@@ -109,7 +120,7 @@ describe('ChePreferences', function () {
       // now, check preferences
       let preferences = factory.getPreferences();
 
-      expect(preferences["pref1"]).toEqual("value1");
+      expect(preferences['pref1']).toEqual('value1');
     }
   );
 
@@ -118,14 +129,14 @@ describe('ChePreferences', function () {
    */
   it('Remove preferences', function () {
 
-      let defaultPreferences = { pref1 : "value1", pref2 : "value2" };
+      let defaultPreferences = { pref1 : 'value1', pref2 : 'value2' };
       cheBackend.addDefaultPreferences(defaultPreferences);
 
       // setup backend
       cheBackend.setup();
 
-      // r
-      factory.removePreferences(["pref1"]);
+      // remove preference
+      factory.removePreferences(['pref1']);
 
       // expecting POST
       httpBackend.expectDELETE('/api/preferences');

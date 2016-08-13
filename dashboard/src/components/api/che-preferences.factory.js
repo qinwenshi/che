@@ -13,6 +13,7 @@
 /**
  * This class is handling the preferences API retrieval
  * @author Yevhenii Voevodin
+ * @author Oleksii Orel
  */
 export class ChePreferences {
 
@@ -30,14 +31,7 @@ export class ChePreferences {
     this.$http = $http;
 
     // remote call
-    this.remotePreferencesAPI = this.$resource('/api/preferences', {}, {
-      getPreferences: {method: 'GET', url: '/api/preferences'},
-      updatePreferences: {method: 'POST', url: '/api/preferences'}
-    });
-
-    // fetch the preferences when we're initialized
-    this.fetchPreferences();
-
+    this.remotePreferencesAPI = this.$resource('/api/preferences', {}, {});
 
     //registry array
     this.registries = [];
@@ -57,7 +51,7 @@ export class ChePreferences {
    */
   updatePreferences(properties) {
     angular.extend(this.preferences, properties);
-    return this.preferences.$save();
+    return this.remotePreferencesAPI.save(this.preferences).$promise;
   }
 
   /**
@@ -71,7 +65,7 @@ export class ChePreferences {
       url: '/api/preferences',
       method: 'DELETE',
       headers: {'Content-Type': 'application/json;charset=utf-8'},
-      data: properties}).then(resp => {
+      data: properties}).then(() => {
         this.fetchPreferences();
     })
   }
@@ -80,27 +74,20 @@ export class ChePreferences {
    * Gets the preferences data
    */
   fetchPreferences() {
-    let preferences = this.remotePreferencesAPI.getPreferences();
-    // if we don't yet have data
-    if (!this.preferences) {
-      // set preferences for using promise in controllers during first request
-      this.preferences = preferences;
-    }
+    let promise = this.remotePreferencesAPI.get().$promise;
 
-    let preferencesPromise = this.preferences.$promise;
-
-    preferencesPromise.then((preferences) => {
+    promise.then((preferences) => {
       // update preferences data if we have new value
-      this.preferences = preferences;
+      this._setPreferences(preferences);
     });
 
-    return preferencesPromise;
+    return promise;
   }
 
 
   /**
    * Gets the registries
-   * @return registries
+   * @return [*] registries
    */
   getRegistries() {
     return this.registries;
@@ -110,7 +97,6 @@ export class ChePreferences {
    * Add a registry
    * @param registryUrl
    * @param userName
-   * @param userEmail
    * @param userPassword
    * @returns {*} the promise
    */
@@ -135,8 +121,7 @@ export class ChePreferences {
     let promise = this.updatePreferences(preferences);
 
     promise.then((preferences) => {
-      this.preferences = preferences;
-      this._updateRegistries(preferences);
+      this._setPreferences(preferences);
     });
 
     return promise;
@@ -160,31 +145,39 @@ export class ChePreferences {
     let promise = this.updatePreferences(preferences);
 
     promise.then((preferences) => {
-      this.preferences = preferences;
-      this._updateRegistries(preferences);
+      this._setPreferences(preferences);
     });
 
     return promise;
   }
 
   /**
-   * Update registry array from preferences
+   * Sets preferences
    * @param preferences
    */
-  _updateRegistries(preferences) {
-    this.registries.length = 0;
-    if (preferences.dockerCredentials) {
-      let credentialsJson = this.$window.atob(preferences.dockerCredentials);
-      let credentials = angular.fromJson(credentialsJson);
+  _setPreferences(preferences) {
+    this.preferences = preferences;
+    this._updateRegistries();
+  }
 
-      for (var key in credentials) {
-        let credential = {
-          url: key,
-          username: credentials[key].username,
-          password: credentials[key].password
-        };
-        this.registries.push(credential);
-      }
+  /**
+   * Update registry array from preferences
+   */
+  _updateRegistries() {
+    this.registries.length = 0;
+    if (!this.preferences || !this.preferences.dockerCredentials) {
+      return;
+    }
+    let credentialsJson = this.$window.atob(this.preferences.dockerCredentials);
+    let credentials = angular.fromJson(credentialsJson);
+
+    for (var key in credentials) {
+      let credential = {
+        url: key,
+        username: credentials[key].username,
+        password: credentials[key].password
+      };
+      this.registries.push(credential);
     }
   }
 }
