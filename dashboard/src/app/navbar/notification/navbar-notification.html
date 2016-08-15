@@ -1,0 +1,30 @@
+<md-menu md-offset="24 24">
+  <div ng-click="$mdOpenMenu($event)" class="navbar-notification">
+    <md-icon md-font-icon="navbar-icon navbar-notification-icon material-design icon-ic_notifications_none_24px"></md-icon>
+    <div class="navbar-notification-count">2</div>
+  </div>
+  <md-menu-content width="5">
+    <md-menu-item layout="column">
+      <div class="navbar-notification-title-error" layout="row" layout-align="start center">
+        <i class="fa fa-exclamation-triangle fa-2x navbar-notification-title-icon"></i>
+        <div>Low RAM</div>
+      </div>
+      <div class="navbar-notification-title-content">
+        The system is low on RAM. New workspace won't start until
+        system RAM is free. 123 123 1231213
+      </div>
+    </md-menu-item>
+    <div class="navbar-notification-separator"></div>
+    <md-menu-item layout="column">
+      <div class="navbar-notification-title-error" layout="row" layout-align="start center">
+        <i class="fa fa-exclamation-triangle fa-2x navbar-notification-title-icon"></i>
+        <div>Low RAM</div>
+      </div>
+      <div>
+        The system is low on RAM.
+      </div>
+    </md-menu-item>
+  </md-menu-content>
+</md-menu>
+
+
