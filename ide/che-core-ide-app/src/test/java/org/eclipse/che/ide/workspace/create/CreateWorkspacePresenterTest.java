@@ -141,7 +141,7 @@ public class CreateWorkspacePresenterTest {
 
         when(dtoFactory.createDto(EnvironmentDto.class)).thenReturn(environmentDto);
         when(environmentDto.withName(anyString())).thenReturn(environmentDto);
-        when(environmentDto.withMachineConfigs(Matchers.<List<MachineConfigDto>>anyObject())).thenReturn(environmentDto);
+//        when(environmentDto.withMachineConfigs(Matchers.<List<MachineConfigDto>>anyObject())).thenReturn(environmentDto);
 
         when(dtoFactory.createDto(WorkspaceConfigDto.class)).thenReturn(workspaceConfigDto);
 
@@ -328,7 +328,7 @@ public class CreateWorkspacePresenterTest {
 
         verify(dtoFactory).createDto(EnvironmentDto.class);
         verify(environmentDto).withName("name");
-        verify(environmentDto).withMachineConfigs(Matchers.<List<MachineConfigDto>>anyObject());
+//        verify(environmentDto).withMachineConfigs(Matchers.<List<MachineConfigDto>>anyObject());
     }
 
     @Test
@@ -348,7 +348,7 @@ public class CreateWorkspacePresenterTest {
         when(workspaceConfigDto.getDefaultEnv()).thenReturn("name");
         when(workspaceConfigDto.getEnvironments()).thenReturn(environments);
 
-        when(environmentDto.getMachineConfigs()).thenReturn(Collections.singletonList(machineConfigDto));
+//        when(environmentDto.getMachineConfigs()).thenReturn(Collections.singletonList(machineConfigDto));
 
         clickOnCreateButton();
 

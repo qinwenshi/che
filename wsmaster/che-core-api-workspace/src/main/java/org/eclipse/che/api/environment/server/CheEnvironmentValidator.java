@@ -48,21 +48,22 @@ public class CheEnvironmentValidator {
         String envName = env.getName();
         checkArgument(envName != null && !envName.isEmpty(),
                       "Environment name should not be neither null nor empty");
-        checkArgument(env.getMachineConfigs() != null && !env.getMachineConfigs().isEmpty(),
-                      "Environment '%s' should contain at least 1 machine",
-                      envName);
+        // TODO use compose format
+//        checkArgument(env.getMachineConfigs() != null && !env.getMachineConfigs().isEmpty(),
+//                      "Environment '%s' should contain at least 1 machine",
+//                      envName);
 
-        final long devCount = env.getMachineConfigs()
-                                 .stream()
-                                 .filter(MachineConfig::isDev)
-                                 .count();
-        checkArgument(devCount == 1,
-                      "Environment '%s' should contain exactly 1 dev machine, but contains '%d'",
-                      envName,
-                      devCount);
-        for (MachineConfig machineCfg : env.getMachineConfigs()) {
-            validateMachine(machineCfg, envName);
-        }
+//        final long devCount = env.getMachineConfigs()
+//                                 .stream()
+//                                 .filter(MachineConfig::isDev)
+//                                 .count();
+//        checkArgument(devCount == 1,
+//                      "Environment '%s' should contain exactly 1 dev machine, but contains '%d'",
+//                      envName,
+//                      devCount);
+//        for (MachineConfig machineCfg : env.getMachineConfigs()) {
+//            validateMachine(machineCfg, envName);
+//        }
     }
 
     private void validateMachine(MachineConfig machineCfg, String envName) throws IllegalArgumentException {

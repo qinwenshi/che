@@ -23,26 +23,31 @@ public interface MachineConfig {
     /**
      * Display name.
      */
+    // TODO move to machine
     String getName();
 
     /**
      * From where to create this Machine (Recipe/Snapshot).
      */
+    // TODO remove
     MachineSource getSource();
 
     /**
      * Is workspace bound to machine or not.
      */
+    // TODO remove
     boolean isDev();
 
     /**
      * Machine type (i.e. "docker").
      */
+    // TODO remove
     String getType();
 
     /**
      * Machine limits such as RAM size.
      */
+    // TODO move to machine
     @Nullable
     Limits getLimits();
 
@@ -51,10 +56,12 @@ public interface MachineConfig {
      *
      * <p>Key is port/transport protocol, e.g. 8080/tcp or 100100/udp
      */
+    // TODO remove
     List<? extends ServerConf> getServers();
 
     /**
      * Get predefined environment variables of machine.
      */
+    // TODO remove
     Map<String, String> getEnvVariables();
 }

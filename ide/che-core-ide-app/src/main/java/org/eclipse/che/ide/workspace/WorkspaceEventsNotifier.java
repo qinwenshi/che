@@ -24,7 +24,6 @@ import org.eclipse.che.api.machine.shared.dto.MachineLogMessageDto;
 import org.eclipse.che.api.machine.shared.dto.event.MachineStatusEvent;
 import org.eclipse.che.api.promises.client.Operation;
 import org.eclipse.che.api.promises.client.OperationException;
-import org.eclipse.che.api.workspace.shared.dto.EnvironmentDto;
 import org.eclipse.che.api.workspace.shared.dto.WorkspaceDto;
 import org.eclipse.che.api.workspace.shared.dto.event.WorkspaceStatusEvent;
 import org.eclipse.che.ide.CoreLocalizationConstant;
@@ -280,12 +279,13 @@ public class WorkspaceEventsNotifier {
             return null;
         }
 
-        String activeEnv = runtime.getActiveEnv();
-        for (EnvironmentDto environment : workspace.getConfig().getEnvironments()) {
-            if (activeEnv.equals(environment.getName())) {
-                return environment.devMachine().getName();
-            }
-        }
+        // TODO !!! get agents and find ws-agent to find out which machine is dev
+//        String activeEnv = runtime.getActiveEnv();
+//        for (EnvironmentDto environment : workspace.getConfig().getEnvironments()) {
+//            if (activeEnv.equals(environment.getName())) {
+//                return environment.devMachine().getName();
+//            }
+//        }
         return null;
     }
 

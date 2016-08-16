@@ -193,7 +193,7 @@ public class WorkspaceEventsNotifierTest {
         when(workspaceConfig.getEnvironments()).thenReturn(environments);
         when(environment.getName()).thenReturn(ACTIVE_ENV);
         MachineConfigDto devMachineConfig = mock(MachineConfigDto.class);
-        when(environment.devMachine()).thenReturn(devMachineConfig);
+//        when(environment.devMachine()).thenReturn(devMachineConfig);
         when(devMachineConfig.getName()).thenReturn(MACHINE_NAME);
 
         workspaceEventsNotifier.trackWorkspaceEvents(workspace, callback);
@@ -218,7 +218,7 @@ public class WorkspaceEventsNotifierTest {
         when(workspaceConfig.getEnvironments()).thenReturn(environments);
         when(environment.getName()).thenReturn(ACTIVE_ENV);
         MachineConfigDto devMachineConfig = mock(MachineConfigDto.class);
-        when(environment.devMachine()).thenReturn(devMachineConfig);
+//        when(environment.devMachine()).thenReturn(devMachineConfig);
         when(devMachineConfig.getName()).thenReturn(MACHINE_NAME);
 
         workspaceEventsNotifier.trackWorkspaceEvents(workspace, callback);
@@ -361,7 +361,7 @@ public class WorkspaceEventsNotifierTest {
         when(workspaceConfig.getEnvironments()).thenReturn(environments);
         when(environment.getName()).thenReturn(ACTIVE_ENV);
         MachineConfigDto devMachineConfig = mock(MachineConfigDto.class);
-        when(environment.devMachine()).thenReturn(devMachineConfig);
+//        when(environment.devMachine()).thenReturn(devMachineConfig);
         when(devMachineConfig.getName()).thenReturn(MACHINE_NAME);
 
         workspaceEventsNotifier.trackWorkspaceEvents(workspace, callback);

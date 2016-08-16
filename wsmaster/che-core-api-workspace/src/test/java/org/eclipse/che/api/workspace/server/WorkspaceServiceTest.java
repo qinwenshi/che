@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.jayway.restassured.response.Response;
 
-import org.eclipse.che.api.core.model.machine.MachineStatus;
 import org.eclipse.che.api.core.model.project.ProjectConfig;
 import org.eclipse.che.api.core.model.workspace.WorkspaceConfig;
 import org.eclipse.che.api.core.model.workspace.WorkspaceStatus;
@@ -26,11 +25,8 @@ import org.eclipse.che.api.environment.server.MachineProcessManager;
 import org.eclipse.che.api.environment.server.MachineServiceLinksInjector;
 import org.eclipse.che.api.machine.server.model.impl.CommandImpl;
 import org.eclipse.che.api.machine.server.model.impl.MachineConfigImpl;
-import org.eclipse.che.api.machine.server.model.impl.MachineImpl;
-import org.eclipse.che.api.machine.server.model.impl.MachineRuntimeInfoImpl;
 import org.eclipse.che.api.machine.server.model.impl.MachineSourceImpl;
 import org.eclipse.che.api.machine.server.model.impl.ServerConfImpl;
-import org.eclipse.che.api.machine.server.model.impl.ServerImpl;
 import org.eclipse.che.api.machine.server.model.impl.SnapshotImpl;
 import org.eclipse.che.api.machine.shared.dto.CommandDto;
 import org.eclipse.che.api.machine.shared.dto.SnapshotDto;
@@ -69,7 +65,6 @@ import java.util.stream.Collectors;
 import static com.jayway.restassured.RestAssured.given;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -647,22 +642,22 @@ public class WorkspaceServiceTest {
         EnvironmentImpl environment = environmentOpt.get();
 
         final WorkspaceRuntimeImpl runtime = new WorkspaceRuntimeImpl(environment.getName());
-        final MachineConfigImpl devCfg = environment.getMachineConfigs()
-                                                    .iterator()
-                                                    .next();
-        runtime.setDevMachine(new MachineImpl(devCfg,
-                                              "machine123",
-                                              workspace.getId(),
-                                              environment.getName(),
-                                              USER_ID,
-                                              MachineStatus.RUNNING,
-                                              new MachineRuntimeInfoImpl(emptyMap(),
-                                                                         emptyMap(),
-                                                                         singletonMap("8080/https", new ServerImpl("wsagent",
-                                                                                                                   "8080",
-                                                                                                                   "https",
-                                                                                                                   "path1",
-                                                                                                                   "url")))));
+//        final MachineConfigImpl devCfg = environment.getMachineConfigs()
+//                                                    .iterator()
+//                                                    .next();
+//        runtime.setDevMachine(new MachineImpl(devCfg,
+//                                              "machine123",
+//                                              workspace.getId(),
+//                                              environment.getName(),
+//                                              USER_ID,
+//                                              MachineStatus.RUNNING,
+//                                              new MachineRuntimeInfoImpl(emptyMap(),
+//                                                                         emptyMap(),
+//                                                                         singletonMap("8080/https", new ServerImpl("wsagent",
+//                                                                                                                   "8080",
+//                                                                                                                   "https",
+//                                                                                                                   "path1",
+//                                                                                                                   "url")))));
         runtime.getMachines().add(runtime.getDevMachine());
         workspace.setStatus(RUNNING);
         workspace.setRuntime(runtime);
@@ -816,7 +811,10 @@ public class WorkspaceServiceTest {
                                                                                                     "path2")))
                                                               .setEnvVariables(singletonMap("key1", "value1"))
                                                               .build();
-        return DtoConverter.asDto(new EnvironmentImpl("dev-env", null, singletonList(devMachine)));
+        return DtoConverter.asDto(new EnvironmentImpl("dev-env",
+                                                      null,
+                                                      null));
+//                                                      singletonList(devMachine)));
     }
 
     private static WorkspaceConfigDto createConfigDto() {

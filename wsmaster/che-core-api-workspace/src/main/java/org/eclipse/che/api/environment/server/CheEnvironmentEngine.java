@@ -22,6 +22,7 @@ import org.eclipse.che.api.core.model.machine.MachineLogMessage;
 import org.eclipse.che.api.core.model.machine.MachineSource;
 import org.eclipse.che.api.core.model.machine.MachineStatus;
 import org.eclipse.che.api.core.model.workspace.Environment;
+import org.eclipse.che.api.core.model.workspace.ExtendedMachine;
 import org.eclipse.che.api.core.notification.EventService;
 import org.eclipse.che.api.core.notification.EventSubscriber;
 import org.eclipse.che.api.core.util.AbstractLineConsumer;
@@ -29,17 +30,18 @@ import org.eclipse.che.api.core.util.CompositeLineConsumer;
 import org.eclipse.che.api.core.util.FileLineConsumer;
 import org.eclipse.che.api.core.util.LineConsumer;
 import org.eclipse.che.api.core.util.MessageConsumer;
+import org.eclipse.che.api.environment.server.compose.ComposeFileParser;
+import org.eclipse.che.api.environment.server.compose.ComposeMachineInstanceProvider;
+import org.eclipse.che.api.environment.server.compose.ComposeServicesStartStrategy;
+import org.eclipse.che.api.environment.server.compose.model.ComposeEnvironment;
+import org.eclipse.che.api.environment.server.compose.model.ComposeService;
 import org.eclipse.che.api.environment.server.exception.EnvironmentNotRunningException;
 import org.eclipse.che.api.machine.server.MachineInstanceProviders;
-import org.eclipse.che.api.machine.server.dao.SnapshotDao;
 import org.eclipse.che.api.machine.server.event.InstanceStateEvent;
 import org.eclipse.che.api.machine.server.exception.MachineException;
-import org.eclipse.che.api.machine.server.exception.SourceNotFoundException;
-import org.eclipse.che.api.machine.server.model.impl.LimitsImpl;
 import org.eclipse.che.api.machine.server.model.impl.MachineConfigImpl;
 import org.eclipse.che.api.machine.server.model.impl.MachineImpl;
 import org.eclipse.che.api.machine.server.model.impl.MachineLogMessageImpl;
-import org.eclipse.che.api.machine.server.model.impl.MachineSourceImpl;
 import org.eclipse.che.api.machine.server.model.impl.SnapshotImpl;
 import org.eclipse.che.api.machine.server.spi.Instance;
 import org.eclipse.che.api.machine.server.spi.InstanceProvider;
@@ -59,6 +61,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +70,6 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static org.eclipse.che.api.machine.server.event.InstanceStateEvent.Type.DIE;
@@ -88,23 +90,29 @@ public class CheEnvironmentEngine {
 
     private final Map<String, EnvironmentHolder> environments;
     private final StripedLocks                   stripedLocks;
-    private final SnapshotDao                    snapshotDao;
     private final File                           machineLogsDir;
     private final MachineInstanceProviders       machineInstanceProviders;
     private final int                            defaultMachineMemorySizeMB;
     private final EventService                   eventService;
+    private final ComposeFileParser              composeFileParser;
+    private final ComposeServicesStartStrategy   startStrategy;
+    private final ComposeMachineInstanceProvider composeProvider;
 
     private volatile boolean isPreDestroyInvoked;
 
     @Inject
-    public CheEnvironmentEngine(SnapshotDao snapshotDao,
-                                MachineInstanceProviders machineInstanceProviders,
+    public CheEnvironmentEngine(MachineInstanceProviders machineInstanceProviders,
                                 @Named("machine.logs.location") String machineLogsDir,
                                 @Named("machine.default_mem_size_mb") int defaultMachineMemorySizeMB,
-                                EventService eventService) {
+                                EventService eventService,
+                                ComposeFileParser composeFileParser,
+                                ComposeServicesStartStrategy startStrategy,
+                                ComposeMachineInstanceProvider composeProvider) {
         this.eventService = eventService;
+        this.composeFileParser = composeFileParser;
+        this.startStrategy = startStrategy;
+        this.composeProvider = composeProvider;
         this.environments = new ConcurrentHashMap<>();
-        this.snapshotDao = snapshotDao;
         this.machineInstanceProviders = machineInstanceProviders;
         this.machineLogsDir = new File(machineLogsDir);
         this.defaultMachineMemorySizeMB = defaultMachineMemorySizeMB;
@@ -129,6 +137,7 @@ public class CheEnvironmentEngine {
             if (environment == null) {
                 throw new EnvironmentNotRunningException("Environment with ID '" + workspaceId + "' is not found");
             }
+            // TODO if outside of lock will return last snapshot of of state so it is OK
             return new ArrayList<>(environment.machines);
         }
     }
@@ -154,6 +163,7 @@ public class CheEnvironmentEngine {
         if (environment == null) {
             throw new EnvironmentNotRunningException("Environment with ID '" + workspaceId + "' is not found");
         }
+        // TODO outside of lock will return last snapshot of of state so it is OK
         return environment.machines.stream()
                                    .filter(instance -> instance.getId().equals(machineId))
                                    .findAny()
@@ -187,36 +197,24 @@ public class CheEnvironmentEngine {
                                 boolean recover,
                                 MessageConsumer<MachineLogMessage> messageConsumer) throws ServerException,
                                                                                            ConflictException {
+        initializeEnvironment(workspaceId, env, messageConsumer);
 
-        // Create a new start queue with a dev machine in the queue head
-        List<MachineConfigImpl> startConfigs = env.getMachineConfigs()
-                                                  .stream()
-                                                  .map(MachineConfigImpl::new)
-                                                  .collect(Collectors.toList());
-        final MachineConfigImpl devCfg = removeFirstMatching(startConfigs, MachineConfig::isDev);
-        startConfigs.add(0, devCfg);
+        String devMachineName = findDevMachineName(env);
 
-        EnvironmentHolder environmentHolder = new EnvironmentHolder(new ArrayDeque<>(startConfigs),
-                                                                    new CopyOnWriteArrayList<>(),
-                                                                    messageConsumer,
-                                                                    EnvStatus.STARTING,
-                                                                    env.getName());
+        String namespace = EnvironmentContext.getCurrent().getSubject().getUserName();
+        startEnvironmentQueue(namespace,
+                              workspaceId,
+                              devMachineName,
+                              recover);
 
         try (StripedLocks.WriteLock lock = stripedLocks.acquireWriteLock(workspaceId)) {
-            if (environments.putIfAbsent(workspaceId, environmentHolder) != null) {
-                throw new ConflictException(format("Environment of workspace '%s' already exists", workspaceId));
-            }
-        }
-
-        startQueue(workspaceId, env.getName(), recover, messageConsumer);
-
-        try (StripedLocks.WriteLock lock = stripedLocks.acquireWriteLock(workspaceId)) {
-            environmentHolder = environments.get(workspaceId);
+            EnvironmentHolder environmentHolder = environments.get(workspaceId);
             // possible only if environment was stopped during its start
             if (environmentHolder == null) {
                 throw new ServerException("Environment start was interrupted by environment stopping");
             }
             environmentHolder.status = EnvStatus.RUNNING;
+            // prevent list modification
             return new ArrayList<>(environmentHolder.machines);
         }
     }
@@ -237,7 +235,9 @@ public class CheEnvironmentEngine {
         try (StripedLocks.WriteLock lock = stripedLocks.acquireWriteLock(workspaceId)) {
             EnvironmentHolder environmentHolder = environments.get(workspaceId);
             if (environmentHolder == null || environmentHolder.status != EnvStatus.RUNNING) {
-                throw new EnvironmentNotRunningException("Environment with ID '" + workspaceId + "' is not found");
+                throw new EnvironmentNotRunningException(
+                        format("Stop of not running environment of workspace with ID '%s' is not allowed.",
+                               workspaceId));
             }
             environments.remove(workspaceId);
             List<Instance> machines = environmentHolder.machines;
@@ -248,7 +248,7 @@ public class CheEnvironmentEngine {
 
         // long operation - perform out of lock
         if (machinesCopy != null) {
-            stopMachines(machinesCopy);
+            stopMachines(workspaceId, machinesCopy);
         }
     }
 
@@ -267,6 +267,7 @@ public class CheEnvironmentEngine {
      * @throws ServerException
      *         if any other error occurs
      */
+    // TODO change config to compose service
     public Instance startMachine(String workspaceId,
                                  MachineConfig machineConfig) throws ServerException,
                                                                          EnvironmentNotRunningException,
@@ -289,59 +290,16 @@ public class CheEnvironmentEngine {
         String machineId = generateMachineId();
         final String creator = EnvironmentContext.getCurrent().getSubject().getUserId();
 
-        Instance instance = null;
-        try {
-            addMachine(workspaceId,
-                       machineId,
-                       environmentHolder.name,
-                       creator,
-                       machineConfigCopy);
-
-            eventService.publish(newDto(MachineStatusEvent.class)
-                                         .withEventType(MachineStatusEvent.EventType.CREATING)
-                                         .withDev(machineConfigCopy.isDev())
-                                         .withMachineName(machineConfigCopy.getName())
-                                         .withMachineId(machineId)
-                                         .withWorkspaceId(workspaceId));
-
-            instance = startMachineInstance(machineConfigCopy,
-                                            workspaceId,
-                                            machineId,
-                                            environmentHolder.name,
-                                            creator,
-                                            false,
-                                            environmentHolder.logger);
-
-            replaceMachine(instance);
-
-            eventService.publish(newDto(MachineStatusEvent.class)
-                                         .withEventType(MachineStatusEvent.EventType.RUNNING)
-                                         .withDev(machineConfigCopy.isDev())
-                                         .withMachineName(machineConfigCopy.getName())
-                                         .withMachineId(instance.getId())
-                                         .withWorkspaceId(workspaceId));
-
-            return instance;
-        } catch (Exception e) {
-            removeMachine(workspaceId, machineId);
-
-            if (instance != null) {
-                try {
-                    instance.destroy();
-                } catch (Exception destroyingExc) {
-                    LOG.error(destroyingExc.getLocalizedMessage(), destroyingExc);
-                }
-            }
-
-            eventService.publish(newDto(MachineStatusEvent.class)
-                                         .withEventType(MachineStatusEvent.EventType.ERROR)
-                                         .withDev(machineConfigCopy.isDev())
-                                         .withMachineName(machineConfigCopy.getName())
-                                         .withMachineId(machineId)
-                                         .withWorkspaceId(workspaceId));
-
-            throw e;
-        }
+        throw new RuntimeException("Operation is not implemented");
+//        return startInstance(workspaceId,
+//                             machineId,
+//                             environmentHolder.name,
+//                             creator,
+//                             machineConfig.getName(),
+//                             machine,
+//                             ,
+//                             ,
+//                             environmentHolder.logger);
     }
 
     /**
@@ -386,6 +344,7 @@ public class CheEnvironmentEngine {
                                                machineId, workspaceId));
         }
 
+        // TODO move to method
         // out of lock to prevent blocking on event processing by subscribers
         eventService.publish(newDto(MachineStatusEvent.class)
                                      .withEventType(MachineStatusEvent.EventType.DESTROYING)
@@ -482,45 +441,107 @@ public class CheEnvironmentEngine {
         }
     }
 
+    private void initializeEnvironment(String workspaceId,
+                                       Environment env,
+                                       MessageConsumer<MachineLogMessage> messageConsumer)
+            throws ServerException,
+                   ConflictException {
+
+        ComposeEnvironment composeEnvironment = composeFileParser.parse(env);
+
+        normalizeEnvironment(composeEnvironment);
+
+        List<String> servicesOrder = startStrategy.order(composeEnvironment);
+
+        EnvironmentHolder environmentHolder = new EnvironmentHolder(servicesOrder,
+                                                                    composeEnvironment,
+                                                                    messageConsumer,
+                                                                    EnvStatus.STARTING,
+                                                                    env.getName());
+
+        try (StripedLocks.WriteLock lock = stripedLocks.acquireWriteLock(workspaceId)) {
+            if (environments.putIfAbsent(workspaceId, environmentHolder) != null) {
+                throw new ConflictException(format("Environment of workspace '%s' already exists", workspaceId));
+            }
+        }
+    }
+
+    private void normalizeEnvironment(ComposeEnvironment composeEnvironment) {
+        for (Map.Entry<String, ComposeService> serviceEntry : composeEnvironment.getServices()
+                                                                                .entrySet()) {
+            if (serviceEntry.getValue().getMemLimit() == 0) {
+                serviceEntry.getValue().setMemLimit(defaultMachineMemorySizeMB);
+            }
+        }
+    }
+
+    private String findDevMachineName(Environment env) throws ServerException {
+        for (Map.Entry<String, ? extends ExtendedMachine> entry : env.getMachines().entrySet()) {
+            if (entry.getValue().getAgents().contains("ws-agent")) {
+                return entry.getKey();
+            }
+        }
+        throw new ServerException("Agent 'ws-agent' is not found in any of environment machines");
+    }
+
     /**
      * Starts all machine from machine queue of environment.
      */
-    private void startQueue(String workspaceId,
-                            String envName,
-                            boolean recover,
-                            MessageConsumer<MachineLogMessage> messageConsumer) throws ServerException {
+    private void startEnvironmentQueue(String namespace,
+                                       String workspaceId,
+                                       String devMachineName,
+                                       boolean recover)
+            throws ServerException {
+
+        composeProvider.startNetwork(workspaceId);
+
         // Starting all machines in environment one by one by getting configs
         // from the corresponding starting queue.
         // Config will be null only if there are no machines left in the queue
-        MachineConfigImpl config = queuePeekOrFail(workspaceId);
-        while (config != null) {
+        String envName;
+        MessageConsumer<MachineLogMessage> envLogger;
+        try (StripedLocks.ReadLock lock = stripedLocks.acquireReadLock(workspaceId)) {
+            EnvironmentHolder environmentHolder = environments.get(workspaceId);
+            if (environmentHolder == null) {
+                throw new ServerException("Environment start is interrupted.");
+            }
+            envName = environmentHolder.name;
+            envLogger = environmentHolder.logger;
+        }
+        String machineName = queuePeekOrFail(workspaceId);
+        boolean isDev = devMachineName.equals(machineName);
+        while (machineName != null) {
             // Environment start is failed when any machine start is failed, so if any error
             // occurs during machine creation then environment start fail is reported and
             // start resources such as queue and descriptor must be cleaned up
+            String machineId = generateMachineId();
+            String creator = EnvironmentContext.getCurrent().getSubject().getUserId();
+
             try {
-                String machineId = generateMachineId();
-                final String creator = EnvironmentContext.getCurrent().getSubject().getUserId();
+                ComposeService composeService;
+                try (StripedLocks.ReadLock lock = stripedLocks.acquireReadLock(workspaceId)) {
+                    EnvironmentHolder environmentHolder = environments.get(workspaceId);
+                    if (environmentHolder == null) {
+                        throw new ServerException("Environment start is interrupted.");
+                    }
+                    composeService = environmentHolder.composeEnvironment.getServices().get(machineName);
+                }
+                // should not happen
+                if (composeService == null) {
+                    LOG.error("Compose service with name {} is missing in compose environment", machineName);
+                    throw new ServerException("Environment of workspace with ID '%s' failed due to internal error");
+                }
 
-                addMachine(workspaceId,
-                           machineId,
-                           envName,
-                           creator,
-                           config);
-
-                eventService.publish(newDto(MachineStatusEvent.class)
-                                             .withEventType(MachineStatusEvent.EventType.CREATING)
-                                             .withDev(config.isDev())
-                                             .withMachineName(config.getName())
-                                             .withWorkspaceId(workspaceId)
-                                             .withMachineId(machineId));
-
-                Instance machine = startMachineInstance(config,
-                                                        workspaceId,
-                                                        machineId,
-                                                        envName,
-                                                        creator,
-                                                        recover,
-                                                        messageConsumer);
+                Instance instance = startInstance(namespace,
+                                                  workspaceId,
+                                                  machineId,
+                                                  envName,
+                                                  creator,
+                                                  machineName,
+                                                  composeService,
+                                                  isDev,
+                                                  recover,
+                                                  envLogger);
 
                 // Machine destroying is an expensive operation which must be
                 // performed outside of the lock, this section checks if
@@ -532,7 +553,7 @@ public class CheEnvironmentEngine {
                     ensurePreDestroyIsNotExecuted();
                     EnvironmentHolder environmentHolder = environments.get(workspaceId);
                     if (environmentHolder != null) {
-                        final Queue<MachineConfigImpl> queue = environmentHolder.startQueue;
+                        final Queue<String> queue = environmentHolder.startQueue;
                         if (queue != null) {
                             queue.poll();
                             queuePolled = true;
@@ -547,18 +568,20 @@ public class CheEnvironmentEngine {
                     try {
                         eventService.publish(newDto(MachineStatusEvent.class)
                                                      .withEventType(MachineStatusEvent.EventType.DESTROYING)
-                                                     .withDev(config.isDev())
-                                                     .withMachineName(config.getName())
-                                                     .withMachineId(machine.getId())
+                                                     .withDev(isDev)
+                                                     .withMachineName(machineName)
+                                                     .withMachineId(machineId)
                                                      .withWorkspaceId(workspaceId));
 
-                        machine.destroy();
+                        instance.destroy();
+
+                        removeMachine(workspaceId, machineId);
 
                         eventService.publish(newDto(MachineStatusEvent.class)
                                                      .withEventType(MachineStatusEvent.EventType.DESTROYED)
-                                                     .withDev(config.isDev())
-                                                     .withMachineName(config.getName())
-                                                     .withMachineId(machine.getId())
+                                                     .withDev(isDev)
+                                                     .withMachineName(machineName)
+                                                     .withMachineId(machineId)
                                                      .withWorkspaceId(workspaceId));
                     } catch (MachineException e) {
                         LOG.error(e.getLocalizedMessage(), e);
@@ -567,23 +590,15 @@ public class CheEnvironmentEngine {
                                               "' start interrupted. Workspace stopped before all its machines started");
                 }
 
-                replaceMachine(machine);
-
-                eventService.publish(newDto(MachineStatusEvent.class)
-                                             .withEventType(MachineStatusEvent.EventType.RUNNING)
-                                             .withDev(config.isDev())
-                                             .withMachineName(config.getName())
-                                             .withMachineId(machine.getId())
-                                             .withWorkspaceId(workspaceId));
-
-                config = queuePeekOrFail(workspaceId);
+                machineName = queuePeekOrFail(workspaceId);
             } catch (RuntimeException | ServerException e) {
                 EnvironmentHolder env;
                 try (StripedLocks.WriteLock lock = stripedLocks.acquireWriteLock(workspaceId)) {
                     env = environments.remove(workspaceId);
                 }
+
                 try {
-                    stopMachines(env.machines);
+                    stopMachines(workspaceId, env.machines);
                 } catch (Exception remEx) {
                     LOG.error(remEx.getLocalizedMessage(), remEx);
                 }
@@ -592,13 +607,127 @@ public class CheEnvironmentEngine {
         }
     }
 
+    private Instance startInstance(String namespace,
+                                   String workspaceId,
+                                   String machineId,
+                                   String envName,
+                                   String creator,
+                                   String machineName,
+                                   ComposeService service,
+                                   boolean isDev,
+                                   boolean recover,
+                                   MessageConsumer<MachineLogMessage> environmentLogger)
+            throws ServerException {
+
+        LineConsumer machineLogger = null;
+        Instance instance = null;
+        try {
+            addMachine(workspaceId,
+                       envName,
+                       machineId,
+                       machineName,
+                       creator,
+                       isDev);
+
+            eventService.publish(newDto(MachineStatusEvent.class)
+                                         .withEventType(MachineStatusEvent.EventType.CREATING)
+                                         .withDev(isDev)
+                                         .withMachineName(machineName)
+                                         .withMachineId(machineId)
+                                         .withWorkspaceId(workspaceId));
+
+            machineLogger = getMachineLogger(environmentLogger,
+                                             machineId,
+                                             machineName);
+
+            instance = composeProvider.startService(namespace,
+                                                    workspaceId,
+                                                    envName,
+                                                    machineId,
+                                                    machineName,
+                                                    isDev,
+                                                    workspaceId,
+                                                    service,
+                                                    machineLogger);
+//            try {
+//            TODO modify compose service image value
+//            if (recover) {
+//                final SnapshotImpl snapshot = snapshotDao.getSnapshot(workspaceId,
+//                                                                      environmentName,
+//                                                                      machine.getConfig().getName());
+//                machine.getConfig().setSource(snapshot.getMachineSource());
+//            }
+//            instance = instanceInstance();
+//            } catch (SourceNotFoundException e) {
+//                if (recover) {
+//                TODO modify compose service image back and rerun
+//                    LOG.error("Image of snapshot for machine " + machine.getConfig().getName() + " not found. " +
+//                              "Machine will be created from origin source");
+//                    machine.getConfig().setSource(sourceCopy);
+//                    instance = instanceProvider.createInstance(machine, machineLogger);
+//                } else {
+//                    throw e;
+//                }
+//            }
+            replaceMachine(instance);
+
+            eventService.publish(newDto(MachineStatusEvent.class)
+                                         .withEventType(MachineStatusEvent.EventType.RUNNING)
+                                         .withDev(isDev)
+                                         .withMachineName(machineName)
+                                         .withMachineId(instance.getId())
+                                         .withWorkspaceId(workspaceId));
+
+            return instance;
+        } catch (ApiException | RuntimeException e) {
+            removeMachine(workspaceId, machineId);
+
+            if (instance != null) {
+                try {
+                    instance.destroy();
+                } catch (Exception destroyingExc) {
+                    LOG.error(destroyingExc.getLocalizedMessage(), destroyingExc);
+                }
+            }
+
+            if (machineLogger != null) {
+                try {
+                    machineLogger.writeLine("[ERROR] " + e.getLocalizedMessage());
+                } catch (IOException ioEx) {
+                    LOG.error(ioEx.getLocalizedMessage(), ioEx);
+                }
+                try {
+                    machineLogger.close();
+                } catch (IOException ioEx) {
+                    LOG.error(ioEx.getLocalizedMessage(), ioEx);
+                }
+            }
+
+            eventService.publish(newDto(MachineStatusEvent.class)
+                                         .withEventType(MachineStatusEvent.EventType.ERROR)
+                                         .withDev(isDev)
+                                         .withMachineName(machineName)
+                                         .withMachineId(machineId)
+                                         .withWorkspaceId(workspaceId));
+
+            throw e;
+        }
+    }
+
     private void addMachine(String workspaceId,
-                            String machineId,
                             String envName,
+                            String machineId,
+                            String machineName,
                             String creator,
-                            MachineConfig machineConfig) throws ServerException {
+                            boolean isDev) throws ServerException {
         Instance machine = new NoOpMachineInstance(MachineImpl.builder()
-                                                              .setConfig(machineConfig)
+                                                              .setConfig(new MachineConfigImpl(isDev,
+                                                                                               machineName,
+                                                                                               "docker",
+                                                                                               null,
+                                                                                               null, // TODO
+                                                                                               Collections.emptyList(),
+                                                                                               Collections.emptyMap()))
                                                               .setId(machineId)
                                                               .setWorkspaceId(workspaceId)
                                                               .setStatus(MachineStatus.CREATING)
@@ -668,7 +797,7 @@ public class CheEnvironmentEngine {
      * @throws ServerException
      *         if pre destroy has been invoked before peek config retrieved
      */
-    private MachineConfigImpl queuePeekOrFail(String workspaceId) throws ServerException {
+    private String queuePeekOrFail(String workspaceId) throws ServerException {
         try (StripedLocks.ReadLock lock = stripedLocks.acquireReadLock(workspaceId)) {
             ensurePreDestroyIsNotExecuted();
             EnvironmentHolder environmentHolder = environments.get(workspaceId);
@@ -680,94 +809,15 @@ public class CheEnvironmentEngine {
         }
     }
 
-    private Instance startMachineInstance(MachineConfig originMachineConfig,
-                                          String workspaceId,
-                                          String machineId,
-                                          String environmentName,
-                                          String creator,
-                                          boolean recover,
-                                          MessageConsumer<MachineLogMessage> environmentLogger)
-            throws ServerException {
-
-        final MachineImpl machine = new MachineImpl(originMachineConfig,
-                                                    machineId,
-                                                    workspaceId,
-                                                    environmentName,
-                                                    creator,
-                                                    MachineStatus.CREATING,
-                                                    null);
-        if ("recipe".equalsIgnoreCase(machine.getConfig().getSource().getType())) {
-            machine.getConfig().getSource().setType("dockerfile");
-        }
-        if (originMachineConfig.getLimits().getRam() == 0) {
-            machine.getConfig().setLimits(new LimitsImpl(defaultMachineMemorySizeMB));
-        }
-        final MachineSourceImpl sourceCopy = machine.getConfig().getSource();
-
-        LineConsumer machineLogger = null;
-        try {
-            machineLogger = getMachineLogger(environmentLogger, machineId, originMachineConfig.getName());
-            if (recover) {
-                final SnapshotImpl snapshot = snapshotDao.getSnapshot(workspaceId,
-                                                                      environmentName,
-                                                                      machine.getConfig().getName());
-                machine.getConfig().setSource(snapshot.getMachineSource());
-            }
-
-            final InstanceProvider instanceProvider =
-                    machineInstanceProviders.getProvider(machine.getConfig().getType());
-
-            if (!instanceProvider.getRecipeTypes().contains(machine.getConfig()
-                                                                   .getSource()
-                                                                   .getType()
-                                                                   .toLowerCase())) {
-                throw new ServerException(format("Recipe type %s of %s machine is unsupported",
-                                                 machine.getConfig().getSource().getType(),
-                                                 machine.getConfig().getName()));
-            }
-
-            try {
-                Instance instance;
-                try {
-                    instance = instanceProvider.createInstance(machine, machineLogger);
-                } catch (SourceNotFoundException e) {
-                    if (recover) {
-                        LOG.error("Image of snapshot for machine " + machine.getConfig().getName() + " not found. " +
-                                  "Machine will be created from origin source");
-                        machine.getConfig().setSource(sourceCopy);
-                        instance = instanceProvider.createInstance(machine, machineLogger);
-                    } else {
-                        throw e;
-                    }
-                }
-                instance.setStatus(MachineStatus.RUNNING);
-                return instance;
-            } catch (ApiException creationEx) {
-                try {
-                    machineLogger.writeLine("[ERROR] " + creationEx.getLocalizedMessage());
-                } catch (IOException ioEx) {
-                    LOG.error(ioEx.getLocalizedMessage());
-                }
-
-                throw new MachineException(creationEx.getLocalizedMessage(), creationEx);
-            }
-        } catch (ApiException apiEx) {
-            if (machineLogger != null) {
-                try {
-                    machineLogger.close();
-                } catch (IOException ioEx) {
-                    LOG.error(ioEx.getLocalizedMessage(), ioEx);
-                }
-            }
-
-            throw new MachineException(apiEx.getLocalizedMessage(), apiEx);
-        }
-    }
-
     /**
      * Stops workspace by destroying all its machines and removing it from in memory storage.
      */
-    private void stopMachines(List<Instance> machines) {
+    private void stopMachines(String workspaceId, List<Instance> machines) {
+        try {
+            composeProvider.stopNetwork(workspaceId);
+        } catch (ServerException netExc) {
+            LOG.error(netExc.getLocalizedMessage(), netExc);
+        }
         for (Instance machine : machines) {
             try {
                 machine.destroy();
@@ -794,6 +844,7 @@ public class CheEnvironmentEngine {
      */
     @PreDestroy
     @VisibleForTesting
+    @SuppressWarnings("unused")
     void cleanup() {
         isPreDestroyInvoked = true;
         final java.io.File[] files = machineLogsDir.listFiles();
@@ -868,22 +919,25 @@ public class CheEnvironmentEngine {
     }
 
     private static class EnvironmentHolder {
-        Queue<MachineConfigImpl>           startQueue;
+        final Queue<String>                      startQueue;
+        final ComposeEnvironment                 composeEnvironment;
+        final MessageConsumer<MachineLogMessage> logger;
+        final String                             name;
+
         List<Instance>                     machines;
         EnvStatus                          status;
-        MessageConsumer<MachineLogMessage> logger;
-        String                             name;
 
-        EnvironmentHolder(Queue<MachineConfigImpl> startQueue,
-                          List<Instance> machines,
+        EnvironmentHolder(List<String> startQueue,
+                          ComposeEnvironment composeEnvironment,
                           MessageConsumer<MachineLogMessage> envLogger,
                           EnvStatus envStatus,
                           String name) {
-            this.startQueue = startQueue;
-            this.machines = machines;
+            this.startQueue = new ArrayDeque<>(startQueue);
+            this.machines = new CopyOnWriteArrayList<>();
             this.logger = envLogger;
             this.status = envStatus;
             this.name = name;
+            this.composeEnvironment = composeEnvironment;
         }
 
         public EnvironmentHolder(EnvironmentHolder environmentHolder) {
@@ -892,6 +946,7 @@ public class CheEnvironmentEngine {
             this.logger = environmentHolder.logger;
             this.status = environmentHolder.status;
             this.name = environmentHolder.name;
+            this.composeEnvironment = environmentHolder.composeEnvironment;
         }
 
         @Override

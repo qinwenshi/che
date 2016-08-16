@@ -28,7 +28,6 @@ import org.eclipse.che.api.workspace.server.spi.StackDao;
 import org.eclipse.che.api.workspace.shared.dto.EnvironmentDto;
 import org.eclipse.che.api.workspace.shared.dto.ProjectConfigDto;
 import org.eclipse.che.api.workspace.shared.dto.ProjectProblemDto;
-import org.eclipse.che.api.workspace.shared.dto.RecipeDto;
 import org.eclipse.che.api.workspace.shared.dto.SourceStorageDto;
 import org.eclipse.che.api.workspace.shared.dto.WorkspaceConfigDto;
 import org.eclipse.che.api.workspace.shared.dto.stack.StackComponentDto;
@@ -146,7 +145,7 @@ public class StackLoaderTest {
                                                                           .withSource(sourceStorageDto);
 
 
-        RecipeDto recipeDto = newDto(RecipeDto.class).withType("type").withScript("script");
+//        RecipeDto recipeDto = newDto(RecipeDto.class).withType("type").withScript("script");
 
         LimitsDto limitsDto = newDto(LimitsDto.class).withRam(100);
 
@@ -167,9 +166,9 @@ public class StackLoaderTest {
                                                                                                     .withProtocol("someprotocol")
                                                                                                     .withPath("/some/path")));
 
-        EnvironmentDto environmentDto = newDto(EnvironmentDto.class).withName("name")
-                                                                    .withRecipe(recipeDto)
-                                                                    .withMachineConfigs(Collections.singletonList(machineConfig));
+        EnvironmentDto environmentDto = newDto(EnvironmentDto.class).withName("name");
+//                                                                    .withRecipe(recipeDto)
+//                                                                    .withMachineConfigs(Collections.singletonList(machineConfig));
 
         CommandDto commandDto = newDto(CommandDto.class).withType("command type")
                                                         .withName("command name")

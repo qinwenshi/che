@@ -60,5 +60,6 @@ public interface WorkspaceConfig {
      * Returns workspace environments.
      * Workspace must contain at least 1 default environment and may contain N environments
      */
+    // TODO change to map
     List<? extends Environment> getEnvironments();
 }

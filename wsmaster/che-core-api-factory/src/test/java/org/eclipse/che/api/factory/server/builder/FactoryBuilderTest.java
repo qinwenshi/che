@@ -14,8 +14,6 @@ import com.google.common.collect.ImmutableMap;
 
 import org.eclipse.che.api.core.ApiException;
 import org.eclipse.che.api.core.factory.FactoryParameter;
-import org.eclipse.che.api.core.model.machine.Limits;
-import org.eclipse.che.api.core.model.workspace.Environment;
 import org.eclipse.che.api.factory.server.impl.SourceStorageParametersValidator;
 import org.eclipse.che.api.factory.shared.dto.Action;
 import org.eclipse.che.api.factory.shared.dto.Author;
@@ -28,13 +26,11 @@ import org.eclipse.che.api.factory.shared.dto.OnAppLoaded;
 import org.eclipse.che.api.factory.shared.dto.OnProjectsLoaded;
 import org.eclipse.che.api.factory.shared.dto.Policies;
 import org.eclipse.che.api.machine.shared.dto.CommandDto;
-import org.eclipse.che.api.machine.shared.dto.LimitsDto;
 import org.eclipse.che.api.machine.shared.dto.MachineConfigDto;
 import org.eclipse.che.api.machine.shared.dto.MachineSourceDto;
 import org.eclipse.che.api.machine.shared.dto.ServerConfDto;
 import org.eclipse.che.api.workspace.shared.dto.EnvironmentDto;
 import org.eclipse.che.api.workspace.shared.dto.ProjectConfigDto;
-import org.eclipse.che.api.workspace.shared.dto.RecipeDto;
 import org.eclipse.che.api.workspace.shared.dto.SourceStorageDto;
 import org.eclipse.che.api.workspace.shared.dto.WorkspaceConfigDto;
 import org.eclipse.che.dto.server.DtoFactory;
@@ -134,7 +130,7 @@ public class FactoryBuilderTest {
     public static Object[][] notValidParamsProvider() throws URISyntaxException, IOException, NoSuchMethodException {
         Factory factory = prepareFactory();
         EnvironmentDto environmentDto = factory.getWorkspace().getEnvironments().get(0);
-        environmentDto.getMachineConfigs().add(dto.createDto(MachineConfigDto.class).withType(null));
+//        environmentDto.getMachineConfigs().add(dto.createDto(MachineConfigDto.class).withType(null));
         return new Object[][] {
                 {dto.clone(factory).withWorkspace(factory.getWorkspace().withDefaultEnv(null)) },
                 {dto.clone(factory).withWorkspace(factory.getWorkspace().withEnvironments(Collections.singletonList(environmentDto))) }
@@ -151,8 +147,8 @@ public class FactoryBuilderTest {
     public static Object[][] sameAsDefaultParamsProvider() throws URISyntaxException, IOException, NoSuchMethodException {
         Factory factory = prepareFactory();
         EnvironmentDto environmentDto = factory.getWorkspace().getEnvironments().get(0);
-        environmentDto.getMachineConfigs().get(0).withDev(false)
-                                                .withLimits(dto.newDto(LimitsDto.class).withRam(0));
+//        environmentDto.getMachineConfigs().get(0).withDev(false)
+//                                                .withLimits(dto.newDto(LimitsDto.class).withRam(0));
         return new Object[][] {
                 {dto.clone(factory).withWorkspace(factory.getWorkspace().withEnvironments(Collections.singletonList(environmentDto))) }
         };
@@ -205,10 +201,11 @@ public class FactoryBuilderTest {
                                                 .withDefaultEnv("env1")
                                                 .withEnvironments(singletonList(dto.createDto(EnvironmentDto.class)
                                                                                    .withName("test")
-                                                                                   .withMachineConfigs(singletonList(machineConfig))
-                                                                                   .withRecipe(dto.createDto(RecipeDto.class)
-                                                                                                  .withType("sometype")
-                                                                                                  .withScript("some script"))));
+//                                                                                   .withMachineConfigs(singletonList(machineConfig))
+//                                                                                   .withRecipe(dto.createDto(RecipeDto.class)
+//                                                                                                  .withType("sometype")
+//                                                                                                  .withScript("some script"))
+                                                ));
         Ide ide = dto.createDto(Ide.class)
                      .withOnAppClosed(dto.createDto(OnAppClosed.class)
                                          .withActions(singletonList(dto.createDto(Action.class).withId("warnOnClose"))))

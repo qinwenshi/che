@@ -13,25 +13,12 @@ package org.eclipse.che.api.core.model.workspace;
 import java.util.Map;
 
 /**
- * Defines environment for machines network.
- *
- * @author gazarenkov
  * @author Alexander Garagatyi
  */
-public interface Environment {
+public interface ServerConf2 {
+    String getPort();
 
-    /**
-     * Returns environment display name. It is mandatory and unique per workspace
-     */
-    String getName();
+    String getProtocol();
 
-    /**
-     * Returns the recipe (the main script) to define this environment (compose, kubernetes pod).
-     * Type of this recipe defines engine for composing machines network runtime
-     */
-    EnvironmentRecipe getRecipe();
-
-    Map<String, ? extends ExtendedMachine> getMachines();
-
-    // TODO external servers
+    Map<String, String> getProperties();
 }

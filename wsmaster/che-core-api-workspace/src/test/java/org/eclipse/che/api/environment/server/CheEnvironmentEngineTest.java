@@ -170,8 +170,8 @@ public class CheEnvironmentEngineTest {
 
         // then
         assertEquals(machines, expectedMachines);
-        verify(instanceProvider, times(env.getMachineConfigs().size()))
-                .createInstance(any(Machine.class), any(LineConsumer.class));
+//        verify(instanceProvider, times(env.getMachineConfigs().size()))
+//                .createInstance(any(Machine.class), any(LineConsumer.class));
     }
 
     @Test
@@ -479,6 +479,7 @@ public class CheEnvironmentEngineTest {
         machines.add(createConfig(false));
         return new EnvironmentImpl("envName",
                                    null,
-                                   machines);
+                                   null);
+                                   //machines); use compose format
     }
 }

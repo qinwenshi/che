@@ -238,9 +238,10 @@ public class CreateWorkspacePresenter implements CreateWorkspaceView.ActionDeleg
                                      .withLimits(dtoFactory.createDto(LimitsDto.class).withRam(2048)));
 
         List<EnvironmentDto> environments = new ArrayList<>();
-        environments.add(dtoFactory.createDto(EnvironmentDto.class)
-                                   .withName(wsName)
-                                   .withMachineConfigs(machineConfigs));
+        // TODO rework to use compose format
+//        environments.add(dtoFactory.createDto(EnvironmentDto.class)
+//                                   .withName(wsName)
+//                                   .withMachineConfigs(machineConfigs));
 
         return dtoFactory.createDto(WorkspaceConfigDto.class)
                          .withName(wsName)

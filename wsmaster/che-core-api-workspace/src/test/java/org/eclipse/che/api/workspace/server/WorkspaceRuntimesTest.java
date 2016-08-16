@@ -27,7 +27,6 @@ import org.eclipse.che.api.machine.server.model.impl.MachineImpl;
 import org.eclipse.che.api.machine.server.model.impl.MachineRuntimeInfoImpl;
 import org.eclipse.che.api.machine.server.model.impl.MachineSourceImpl;
 import org.eclipse.che.api.machine.server.model.impl.SnapshotImpl;
-import org.eclipse.che.api.machine.server.recipe.RecipeImpl;
 import org.eclipse.che.api.machine.server.spi.Instance;
 import org.eclipse.che.api.workspace.server.WorkspaceRuntimes.RuntimeDescriptor;
 import org.eclipse.che.api.workspace.server.model.impl.EnvironmentImpl;
@@ -563,8 +562,10 @@ public class WorkspaceRuntimesTest {
                                                              .setDev(false)
                                                              .build();
         EnvironmentImpl environment = new EnvironmentImpl(ENV_NAME,
-                                                          new RecipeImpl(),
-                                                          asList(nonDevCfg, devCfg));
+                                                          null,
+                                                          null);
+//                                                          new RecipeImpl(),
+//                                                          asList(nonDevCfg, devCfg));
         WorkspaceConfigImpl wsConfig = WorkspaceConfigImpl.builder()
                                                           .setName("test workspace")
                                                           .setEnvironments(singletonList(environment))
