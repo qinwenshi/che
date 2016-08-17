@@ -20,7 +20,6 @@
          class="che-checkbox-area"
          ng-if="workspaceItemCtrl.isSelectable === true">
       <che-list-item-checked ng-model="workspaceItemCtrl.isSelect"
-                             ng-show="('RUNNING' === workspaceItemCtrl.getWorkspaceStatus() || 'STOPPED' === workspaceItemCtrl.getWorkspaceStatus())"
                              che-aria-label-checkbox="Workspace {{workspaceItemCtrl.workspace.config.name}}"
                              ng-click="workspaceItemCtrl.onCheckboxClick()"></che-list-item-checked>
     </div>

@@ -50,7 +50,13 @@ export class ChePreferences {
    * @param properties
    */
   updatePreferences(properties) {
-    angular.extend(this.preferences, properties);
+    if (this.preferences && properties) {
+      angular.extend(this.preferences, properties);
+    } else if (properties) {
+      this.preferences = properties;
+    } else {
+      this.preferences = {};
+    }
     return this.remotePreferencesAPI.save(this.preferences).$promise;
   }
 
@@ -65,8 +71,9 @@ export class ChePreferences {
       url: '/api/preferences',
       method: 'DELETE',
       headers: {'Content-Type': 'application/json;charset=utf-8'},
-      data: properties}).then(() => {
-        this.fetchPreferences();
+      data: properties
+    }).then(() => {
+      this.fetchPreferences();
     })
   }
 
@@ -107,7 +114,7 @@ export class ChePreferences {
       password: userPassword
     };
 
-    if (this.preferences.dockerCredentials) {
+    if (this.preferences && this.preferences.dockerCredentials) {
       let remoteCredentialsJson = this.$window.atob(this.preferences.dockerCredentials);
       let remoteCredentials = angular.fromJson(remoteCredentialsJson);
       if (remoteCredentials[registryUrl]) {
