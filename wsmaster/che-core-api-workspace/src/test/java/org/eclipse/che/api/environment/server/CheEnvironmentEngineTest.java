@@ -17,9 +17,11 @@ import org.eclipse.che.api.core.model.machine.MachineLogMessage;
 import org.eclipse.che.api.core.notification.EventService;
 import org.eclipse.che.api.core.util.LineConsumer;
 import org.eclipse.che.api.core.util.MessageConsumer;
+import org.eclipse.che.api.environment.server.compose.ComposeFileParser;
+import org.eclipse.che.api.environment.server.compose.ComposeMachineInstanceProvider;
+import org.eclipse.che.api.environment.server.compose.ComposeServicesStartStrategy;
 import org.eclipse.che.api.environment.server.exception.EnvironmentNotRunningException;
 import org.eclipse.che.api.machine.server.MachineInstanceProviders;
-import org.eclipse.che.api.machine.server.dao.SnapshotDao;
 import org.eclipse.che.api.machine.server.exception.MachineException;
 import org.eclipse.che.api.machine.server.model.impl.LimitsImpl;
 import org.eclipse.che.api.machine.server.model.impl.MachineConfigImpl;
@@ -40,6 +42,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -70,7 +73,7 @@ public class CheEnvironmentEngineTest {
     InstanceProvider instanceProvider;
 
     @Mock
-    SnapshotDao              snapshotDao;
+    ComposeMachineInstanceProvider provider;
     @Mock
     MachineInstanceProviders machineInstanceProviders;
     @Mock
@@ -80,11 +83,13 @@ public class CheEnvironmentEngineTest {
 
     @BeforeMethod
     public void setUp() throws Exception {
-        engine = spy(new CheEnvironmentEngine(snapshotDao,
-                                              machineInstanceProviders,
+        engine = spy(new CheEnvironmentEngine(machineInstanceProviders,
                                               "/tmp",
                                               256,
-                                              eventService));
+                                              eventService,
+                                              new ComposeFileParser(URI.create("http://localhost")),
+                                              new ComposeServicesStartStrategy(),
+                                              provider));
 
         when(machineInstanceProviders.getProvider("docker")).thenReturn(instanceProvider);
         when(instanceProvider.getRecipeTypes()).thenReturn(Collections.singleton("dockerfile"));
