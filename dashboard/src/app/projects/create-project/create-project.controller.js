@@ -513,11 +513,7 @@ export class CreateProjectCtrl {
       // redirect to IDE from crane loader page
       let currentPath = this.$location.path();
       if (/create-project/.test(currentPath)) {
-        let link = this.getIDELink();
-        if (link.indexOf('#') === 0) {
-          link = link.substring(1, link.length);
-        }
-        this.$location.path(link);
+        this.createProjectSvc.redirectToIDE();
       }
     }, (error) => {
       this.cleanupChannels(websocketStream, workspaceBus, bus, channel);
@@ -1219,14 +1215,6 @@ export class CreateProjectCtrl {
       logs += step.logs + '\n';
     });
     this.$window.open('data:text/csv,' + encodeURIComponent(logs));
-  }
-
-  getCreateButtonTitle() {
-    if (this.workspaceResource === 'from-stack') {
-      return "Create Workspace and Project";
-    } else {
-      return "Load Workspace and Create Project";
-    }
   }
 
   /**
