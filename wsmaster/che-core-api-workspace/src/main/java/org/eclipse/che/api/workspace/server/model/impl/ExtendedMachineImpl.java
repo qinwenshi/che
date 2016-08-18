@@ -33,7 +33,8 @@ public class ExtendedMachineImpl implements ExtendedMachine {
 
     public ExtendedMachineImpl(ExtendedMachine machine) {
         this.agents = new ArrayList<>(machine.getAgents());
-        this.servers = servers.entrySet()
+        this.servers = machine.getServers()
+                              .entrySet()
                               .stream()
                               .collect(Collectors.toMap(Map.Entry::getKey,
                                                         entry -> new ServerConf2Impl(entry.getValue())));

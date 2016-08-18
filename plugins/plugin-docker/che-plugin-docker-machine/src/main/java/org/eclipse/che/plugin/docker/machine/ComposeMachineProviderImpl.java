@@ -25,6 +25,7 @@ import org.eclipse.che.api.environment.server.compose.ComposeMachineInstanceProv
 import org.eclipse.che.api.environment.server.compose.model.ComposeService;
 import org.eclipse.che.api.machine.server.exception.MachineException;
 import org.eclipse.che.api.machine.server.exception.SourceNotFoundException;
+import org.eclipse.che.api.machine.server.model.impl.LimitsImpl;
 import org.eclipse.che.api.machine.server.model.impl.MachineConfigImpl;
 import org.eclipse.che.api.machine.server.model.impl.MachineImpl;
 import org.eclipse.che.api.machine.server.model.impl.MachineSourceImpl;
@@ -266,7 +267,12 @@ public class ComposeMachineProviderImpl implements ComposeMachineInstanceProvide
                                                       machineId,
                                                       workspaceId);
 
-            MachineImpl machine = new MachineImpl(new MachineConfigImpl(),
+            MachineImpl machine = new MachineImpl(MachineConfigImpl.builder()
+                                                                   .setDev(isDev)
+                                                                   .setName(machineName)
+                                                                   .setType("docker")
+                                                                   .setLimits(new LimitsImpl(service.getMemLimit()))
+                                                                   .build(),
                                                   machineId,
                                                   workspaceId,
                                                   envName,
@@ -423,30 +429,27 @@ public class ComposeMachineProviderImpl implements ComposeMachineInstanceProvide
                                                                                                     endpointConfig));
 
         HostConfig hostConfig = new HostConfig();
-        hostConfig.withBinds(service.getVolumes().toArray(new String[service.getVolumes().size()]))
+        hostConfig.withBinds(toArrayIfNotNull(service.getVolumes()))
                   .withExtraHosts(allMachinesExtraHosts)
                   .withPublishAllPorts(true)
                   .withMemorySwap(machineMemorySwap)
                   .withMemory(machineMemory)
                   .withPrivileged(privilegeMode)
                   .withNetworkMode(networkName)
-                  .withLinks(service.getLinks().toArray(new String[service.getLinks().size()]))
+                  .withLinks(toArrayIfNotNull(service.getLinks()))
                   .withPortBindings(service.getPorts()
                                            .stream()
                                            .collect(Collectors.toMap(Function.identity(),
                                                                      value -> new PortBinding[0])))
-                  .withVolumesFrom(service.getVolumesFrom()
-                                          .toArray(new String[service.getVolumesFrom().size()]));
+                  .withVolumesFrom(toArrayIfNotNull(service.getVolumesFrom()));
 
         ContainerConfig config = new ContainerConfig();
         config.withImage(image)
               .withExposedPorts(service.getExpose().stream().collect(Collectors.toMap(Function.identity(),
                                                                                       value -> Collections.emptyMap())))
               .withHostConfig(hostConfig)
-              .withCmd(service.getCommand()
-                              .toArray(new String[service.getCommand().size()]))
-              .withEntrypoint(service.getEntrypoint()
-                                     .toArray(new String[service.getEntrypoint().size()]))
+              .withCmd(toArrayIfNotNull(service.getCommand()))
+              .withEntrypoint(toArrayIfNotNull(service.getEntrypoint()))
               .withLabels(service.getLabels())
               .withNetworkingConfig(networkingConfig)
 //              .withVolumes(service.getVolumes()
@@ -599,5 +602,12 @@ public class ComposeMachineProviderImpl implements ComposeMachineInstanceProvide
             esc = "/" + esc;
         }
         return esc;
+    }
+
+    private String[] toArrayIfNotNull(List<String> list) {
+        if (list == null) {
+            return null;
+        }
+        return list.toArray(new String[list.size()]);
     }
 }

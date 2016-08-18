@@ -197,7 +197,12 @@ public class CheEnvironmentEngine {
                                 boolean recover,
                                 MessageConsumer<MachineLogMessage> messageConsumer) throws ServerException,
                                                                                            ConflictException {
-        initializeEnvironment(workspaceId, env, messageConsumer);
+        String networkId = NameGenerator.generate(workspaceId, 16);
+
+        initializeEnvironment(workspaceId,
+                              env,
+                              networkId,
+                              messageConsumer);
 
         String devMachineName = findDevMachineName(env);
 
@@ -205,6 +210,7 @@ public class CheEnvironmentEngine {
         startEnvironmentQueue(namespace,
                               workspaceId,
                               devMachineName,
+                              networkId,
                               recover);
 
         try (StripedLocks.WriteLock lock = stripedLocks.acquireWriteLock(workspaceId)) {
@@ -232,8 +238,9 @@ public class CheEnvironmentEngine {
     public void stop(String workspaceId) throws EnvironmentNotRunningException,
                                                 ServerException {
         List<Instance> machinesCopy = null;
+        EnvironmentHolder environmentHolder;
         try (StripedLocks.WriteLock lock = stripedLocks.acquireWriteLock(workspaceId)) {
-            EnvironmentHolder environmentHolder = environments.get(workspaceId);
+            environmentHolder = environments.get(workspaceId);
             if (environmentHolder == null || environmentHolder.status != EnvStatus.RUNNING) {
                 throw new EnvironmentNotRunningException(
                         format("Stop of not running environment of workspace with ID '%s' is not allowed.",
@@ -248,7 +255,7 @@ public class CheEnvironmentEngine {
 
         // long operation - perform out of lock
         if (machinesCopy != null) {
-            stopMachines(workspaceId, machinesCopy);
+            stopMachines(environmentHolder.networkId, machinesCopy);
         }
     }
 
@@ -443,6 +450,7 @@ public class CheEnvironmentEngine {
 
     private void initializeEnvironment(String workspaceId,
                                        Environment env,
+                                       String networkId,
                                        MessageConsumer<MachineLogMessage> messageConsumer)
             throws ServerException,
                    ConflictException {
@@ -457,7 +465,8 @@ public class CheEnvironmentEngine {
                                                                     composeEnvironment,
                                                                     messageConsumer,
                                                                     EnvStatus.STARTING,
-                                                                    env.getName());
+                                                                    env.getName(),
+                                                                    networkId);
 
         try (StripedLocks.WriteLock lock = stripedLocks.acquireWriteLock(workspaceId)) {
             if (environments.putIfAbsent(workspaceId, environmentHolder) != null) {
@@ -490,11 +499,9 @@ public class CheEnvironmentEngine {
     private void startEnvironmentQueue(String namespace,
                                        String workspaceId,
                                        String devMachineName,
+                                       String networkId,
                                        boolean recover)
             throws ServerException {
-
-        composeProvider.startNetwork(workspaceId);
-
         // Starting all machines in environment one by one by getting configs
         // from the corresponding starting queue.
         // Config will be null only if there are no machines left in the queue
@@ -508,16 +515,19 @@ public class CheEnvironmentEngine {
             envName = environmentHolder.name;
             envLogger = environmentHolder.logger;
         }
-        String machineName = queuePeekOrFail(workspaceId);
-        boolean isDev = devMachineName.equals(machineName);
-        while (machineName != null) {
-            // Environment start is failed when any machine start is failed, so if any error
-            // occurs during machine creation then environment start fail is reported and
-            // start resources such as queue and descriptor must be cleaned up
-            String machineId = generateMachineId();
-            String creator = EnvironmentContext.getCurrent().getSubject().getUserId();
 
-            try {
+        try {
+            composeProvider.startNetwork(networkId);// TODO if several networks exists network creation fails
+
+            String machineName = queuePeekOrFail(workspaceId);
+            while (machineName != null) {
+                boolean isDev = devMachineName.equals(machineName);
+                // Environment start is failed when any machine start is failed, so if any error
+                // occurs during machine creation then environment start fail is reported and
+                // start resources such as queue and descriptor must be cleaned up
+                String machineId = generateMachineId();
+                String creator = EnvironmentContext.getCurrent().getSubject().getUserId();
+
                 ComposeService composeService;
                 try (StripedLocks.ReadLock lock = stripedLocks.acquireReadLock(workspaceId)) {
                     EnvironmentHolder environmentHolder = environments.get(workspaceId);
@@ -525,7 +535,7 @@ public class CheEnvironmentEngine {
                         throw new ServerException("Environment start is interrupted.");
                     }
                     composeService = environmentHolder.composeEnvironment.getServices().get(machineName);
-                }
+                    }
                 // should not happen
                 if (composeService == null) {
                     LOG.error("Compose service with name {} is missing in compose environment", machineName);
@@ -539,6 +549,7 @@ public class CheEnvironmentEngine {
                                                   creator,
                                                   machineName,
                                                   composeService,
+                                                  networkId,
                                                   isDev,
                                                   recover,
                                                   envLogger);
@@ -558,8 +569,8 @@ public class CheEnvironmentEngine {
                             queue.poll();
                             queuePolled = true;
                         }
+                        }
                     }
-                }
 
                 // If machine config is not polled from the queue
                 // then environment was stopped and newly created machine
@@ -588,22 +599,22 @@ public class CheEnvironmentEngine {
                     }
                     throw new ServerException("Workspace '" + workspaceId +
                                               "' start interrupted. Workspace stopped before all its machines started");
-                }
+                    }
 
                 machineName = queuePeekOrFail(workspaceId);
-            } catch (RuntimeException | ServerException e) {
-                EnvironmentHolder env;
-                try (StripedLocks.WriteLock lock = stripedLocks.acquireWriteLock(workspaceId)) {
-                    env = environments.remove(workspaceId);
-                }
-
-                try {
-                    stopMachines(workspaceId, env.machines);
-                } catch (Exception remEx) {
-                    LOG.error(remEx.getLocalizedMessage(), remEx);
-                }
-                throw new ServerException(e.getLocalizedMessage(), e);
             }
+        } catch (RuntimeException | ServerException e) {
+            EnvironmentHolder env;
+            try (StripedLocks.WriteLock lock = stripedLocks.acquireWriteLock(workspaceId)) {
+                env = environments.remove(workspaceId);
+        }
+
+            try {
+                stopMachines(env.networkId, env.machines);
+            } catch (Exception remEx) {
+                LOG.error(remEx.getLocalizedMessage(), remEx);
+            }
+            throw new ServerException(e.getLocalizedMessage(), e);
         }
     }
 
@@ -614,6 +625,7 @@ public class CheEnvironmentEngine {
                                    String creator,
                                    String machineName,
                                    ComposeService service,
+                                   String networkId,
                                    boolean isDev,
                                    boolean recover,
                                    MessageConsumer<MachineLogMessage> environmentLogger)
@@ -646,7 +658,7 @@ public class CheEnvironmentEngine {
                                                     machineId,
                                                     machineName,
                                                     isDev,
-                                                    workspaceId,
+                                                    networkId,
                                                     service,
                                                     machineLogger);
 //            try {
@@ -812,9 +824,10 @@ public class CheEnvironmentEngine {
     /**
      * Stops workspace by destroying all its machines and removing it from in memory storage.
      */
-    private void stopMachines(String workspaceId, List<Instance> machines) {
+    private void stopMachines(String networkId,
+                              List<Instance> machines) {
         try {
-            composeProvider.stopNetwork(workspaceId);
+            composeProvider.stopNetwork(networkId);
         } catch (ServerException netExc) {
             LOG.error(netExc.getLocalizedMessage(), netExc);
         }
@@ -923,6 +936,7 @@ public class CheEnvironmentEngine {
         final ComposeEnvironment                 composeEnvironment;
         final MessageConsumer<MachineLogMessage> logger;
         final String                             name;
+        final String                             networkId;
 
         List<Instance>                     machines;
         EnvStatus                          status;
@@ -931,13 +945,15 @@ public class CheEnvironmentEngine {
                           ComposeEnvironment composeEnvironment,
                           MessageConsumer<MachineLogMessage> envLogger,
                           EnvStatus envStatus,
-                          String name) {
+                          String name,
+                          String networkId) {
             this.startQueue = new ArrayDeque<>(startQueue);
             this.machines = new CopyOnWriteArrayList<>();
             this.logger = envLogger;
             this.status = envStatus;
             this.name = name;
             this.composeEnvironment = composeEnvironment;
+            this.networkId = networkId;
         }
 
         public EnvironmentHolder(EnvironmentHolder environmentHolder) {
@@ -947,6 +963,7 @@ public class CheEnvironmentEngine {
             this.status = environmentHolder.status;
             this.name = environmentHolder.name;
             this.composeEnvironment = environmentHolder.composeEnvironment;
+            this.networkId = environmentHolder.networkId;
         }
 
         @Override

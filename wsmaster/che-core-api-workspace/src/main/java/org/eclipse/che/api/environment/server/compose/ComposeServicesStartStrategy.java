@@ -15,6 +15,7 @@ import org.eclipse.che.api.environment.server.compose.model.ComposeService;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +44,7 @@ public class ComposeServicesStartStrategy {
 
     private Map<String, Integer> weightMachines(Map<String, ComposeService> services) throws IllegalArgumentException {
         HashMap<String, Integer> weights = new HashMap<>();
-        Set<String> machinesLeft = services.keySet();
+        Set<String> machinesLeft = new HashSet<>(services.keySet());
 
         // create dependency graph
         Map<String, List<String>> dependencies = new HashMap<>(services.size());
