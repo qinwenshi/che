@@ -33,8 +33,8 @@ import org.eclipse.che.api.core.util.MessageConsumer;
 import org.eclipse.che.api.environment.server.compose.ComposeFileParser;
 import org.eclipse.che.api.environment.server.compose.ComposeMachineInstanceProvider;
 import org.eclipse.che.api.environment.server.compose.ComposeServicesStartStrategy;
-import org.eclipse.che.api.environment.server.compose.model.ComposeEnvironment;
-import org.eclipse.che.api.environment.server.compose.model.ComposeService;
+import org.eclipse.che.api.environment.server.compose.model.ComposeEnvironmentImpl;
+import org.eclipse.che.api.environment.server.compose.model.ComposeServiceImpl;
 import org.eclipse.che.api.environment.server.exception.EnvironmentNotRunningException;
 import org.eclipse.che.api.machine.server.MachineInstanceProviders;
 import org.eclipse.che.api.machine.server.event.InstanceStateEvent;
@@ -50,6 +50,7 @@ import org.eclipse.che.api.workspace.server.StripedLocks;
 import org.eclipse.che.commons.env.EnvironmentContext;
 import org.eclipse.che.commons.lang.IoUtil;
 import org.eclipse.che.commons.lang.NameGenerator;
+import org.eclipse.che.commons.lang.Size;
 import org.slf4j.Logger;
 
 import javax.annotation.PostConstruct;
@@ -92,7 +93,7 @@ public class CheEnvironmentEngine {
     private final StripedLocks                   stripedLocks;
     private final File                           machineLogsDir;
     private final MachineInstanceProviders       machineInstanceProviders;
-    private final int                            defaultMachineMemorySizeMB;
+    private final String                         defaultMachineMemorySizeMB;
     private final EventService                   eventService;
     private final ComposeFileParser              composeFileParser;
     private final ComposeServicesStartStrategy   startStrategy;
@@ -115,7 +116,7 @@ public class CheEnvironmentEngine {
         this.environments = new ConcurrentHashMap<>();
         this.machineInstanceProviders = machineInstanceProviders;
         this.machineLogsDir = new File(machineLogsDir);
-        this.defaultMachineMemorySizeMB = defaultMachineMemorySizeMB;
+        this.defaultMachineMemorySizeMB = defaultMachineMemorySizeMB + "MB";
         // 16 - experimental value for stripes count, it comes from default hash map size
         this.stripedLocks = new StripedLocks(16);
         eventService.subscribe(new MachineCleaner());
@@ -460,7 +461,7 @@ public class CheEnvironmentEngine {
             throws ServerException,
                    ConflictException {
 
-        ComposeEnvironment composeEnvironment = composeFileParser.parse(env);
+        ComposeEnvironmentImpl composeEnvironment = composeFileParser.parse(env);
 
         normalizeEnvironment(composeEnvironment);
 
@@ -480,11 +481,11 @@ public class CheEnvironmentEngine {
         }
     }
 
-    private void normalizeEnvironment(ComposeEnvironment composeEnvironment) {
-        for (Map.Entry<String, ComposeService> serviceEntry : composeEnvironment.getServices()
-                                                                                .entrySet()) {
+    private void normalizeEnvironment(ComposeEnvironmentImpl composeEnvironment) {
+        for (Map.Entry<String, ComposeServiceImpl> serviceEntry : composeEnvironment.getServices()
+                                                                                    .entrySet()) {
             if (serviceEntry.getValue().getMemLimit() == 0) {
-                serviceEntry.getValue().setMemLimit(defaultMachineMemorySizeMB);
+                serviceEntry.getValue().setMemLimit(Size.parseSize(defaultMachineMemorySizeMB));
             }
         }
     }
@@ -533,7 +534,7 @@ public class CheEnvironmentEngine {
                 String machineId = generateMachineId();
                 String creator = EnvironmentContext.getCurrent().getSubject().getUserId();
 
-                ComposeService composeService;
+                ComposeServiceImpl composeService;
                 try (StripedLocks.ReadLock lock = stripedLocks.acquireReadLock(workspaceId)) {
                     EnvironmentHolder environmentHolder = environments.get(workspaceId);
                     if (environmentHolder == null) {
@@ -629,7 +630,7 @@ public class CheEnvironmentEngine {
                                    String envName,
                                    String creator,
                                    String machineName,
-                                   ComposeService service,
+                                   ComposeServiceImpl service,
                                    String networkId,
                                    boolean isDev,
                                    boolean recover,
@@ -938,7 +939,7 @@ public class CheEnvironmentEngine {
 
     private static class EnvironmentHolder {
         final Queue<String>                      startQueue;
-        final ComposeEnvironment                 composeEnvironment;
+        final ComposeEnvironmentImpl             composeEnvironment;
         final MessageConsumer<MachineLogMessage> logger;
         final String                             name;
         final String                             networkId;
@@ -947,7 +948,7 @@ public class CheEnvironmentEngine {
         EnvStatus                          status;
 
         EnvironmentHolder(List<String> startQueue,
-                          ComposeEnvironment composeEnvironment,
+                          ComposeEnvironmentImpl composeEnvironment,
                           MessageConsumer<MachineLogMessage> envLogger,
                           EnvStatus envStatus,
                           String name,

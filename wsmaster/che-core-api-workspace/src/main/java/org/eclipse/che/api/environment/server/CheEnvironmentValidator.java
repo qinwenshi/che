@@ -45,9 +45,38 @@ public class CheEnvironmentValidator {
     }
 
     public void validate(String envName, Environment env) throws IllegalArgumentException {
-        checkArgument(envName != null && !envName.isEmpty(),
+        checkArgument(!isNullOrEmpty(envName),
                       "Environment name should not be neither null nor empty");
+        checkNotNull(env.getRecipe(), "Environment recipe should not be null");
+        checkArgument(!isNullOrEmpty(env.getRecipe().getType()),
+                      "Environment recipe type should not be neither null nor empty");
+        checkArgument("compose".equals(env.getRecipe().getType()),
+                      "Type '%s' of environment '%s' is not supported. Supported types: %s",
+                      env.getRecipe().getType(),
+                      envName,
+                      "compose");
+        checkArgument(!isNullOrEmpty(env.getRecipe().getContentType()),
+                      "Environment recipe content type should not be neither null nor empty");
+        checkArgument(env.getRecipe().getContent() != null || env.getRecipe().getLocation() != null,
+                      "Recipe of environment '%s' must contain location or content", envName);
+        checkArgument(env.getRecipe().getContent() == null || env.getRecipe().getLocation() == null,
+                      "Recipe of environment '%s' contains mutually exclusive fields location and content",
+                      envName);
+
         // TODO use compose format
+        // check :
+        // machine name is not empty
+        // dev machine existence, only 1
+        // che machines field
+
+
+
+
+
+
+
+
+
 //        checkArgument(env.getMachineConfigs() != null && !env.getMachineConfigs().isEmpty(),
 //                      "Environment '%s' should contain at least 1 machine",
 //                      envName);

@@ -12,7 +12,7 @@ package org.eclipse.che.api.environment.server.compose;
 
 import org.eclipse.che.api.core.ServerException;
 import org.eclipse.che.api.core.util.LineConsumer;
-import org.eclipse.che.api.environment.server.compose.model.ComposeService;
+import org.eclipse.che.api.environment.server.compose.model.ComposeServiceImpl;
 import org.eclipse.che.api.machine.server.spi.Instance;
 
 /**
@@ -26,7 +26,7 @@ public interface ComposeMachineInstanceProvider {
                                  String machineName,
                                  boolean isDev,
                                  String networkName,
-                                 ComposeService service,
+                                 ComposeServiceImpl service,
                                  LineConsumer machineLogger)
             throws ServerException;
 

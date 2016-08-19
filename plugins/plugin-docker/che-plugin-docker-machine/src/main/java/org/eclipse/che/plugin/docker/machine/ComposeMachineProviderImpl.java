@@ -22,7 +22,7 @@ import org.eclipse.che.api.core.model.machine.ServerConf;
 import org.eclipse.che.api.core.util.LineConsumer;
 import org.eclipse.che.api.core.util.SystemInfo;
 import org.eclipse.che.api.environment.server.compose.ComposeMachineInstanceProvider;
-import org.eclipse.che.api.environment.server.compose.model.ComposeService;
+import org.eclipse.che.api.environment.server.compose.model.ComposeServiceImpl;
 import org.eclipse.che.api.machine.server.exception.MachineException;
 import org.eclipse.che.api.machine.server.exception.SourceNotFoundException;
 import org.eclipse.che.api.machine.server.model.impl.LimitsImpl;
@@ -32,6 +32,7 @@ import org.eclipse.che.api.machine.server.model.impl.MachineSourceImpl;
 import org.eclipse.che.api.machine.server.spi.Instance;
 import org.eclipse.che.commons.annotation.Nullable;
 import org.eclipse.che.commons.env.EnvironmentContext;
+import org.eclipse.che.commons.lang.Size;
 import org.eclipse.che.plugin.docker.client.DockerConnector;
 import org.eclipse.che.plugin.docker.client.DockerConnectorConfiguration;
 import org.eclipse.che.plugin.docker.client.ProgressLineFormatterImpl;
@@ -216,12 +217,12 @@ public class ComposeMachineProviderImpl implements ComposeMachineInstanceProvide
                                  String machineName,
                                  boolean isDev,
                                  String networkName,
-                                 ComposeService service,
+                                 ComposeServiceImpl service,
                                  LineConsumer machineLogger)
             throws ServerException {
 
         // copy to not affect/be affected by changes in origin
-        service = new ComposeService(service);
+        service = new ComposeServiceImpl(service);
 
         ProgressLineFormatterImpl progressLineFormatter = new ProgressLineFormatterImpl();
         ProgressMonitor progressMonitor = currentProgressStatus -> {
@@ -271,7 +272,8 @@ public class ComposeMachineProviderImpl implements ComposeMachineInstanceProvide
                                                                    .setDev(isDev)
                                                                    .setName(machineName)
                                                                    .setType("docker")
-                                                                   .setLimits(new LimitsImpl(service.getMemLimit()))
+                                                                   // casting considered as safe because more than int of megabytes is a lot!
+                                                                   .setLimits(new LimitsImpl((int)Size.parseSizeToMegabytes(service.getMemLimit() + "b")))
                                                                    .build(),
                                                   machineId,
                                                   workspaceId,
@@ -319,44 +321,44 @@ public class ComposeMachineProviderImpl implements ComposeMachineInstanceProvide
                                 String workspaceId,
                                 String machineId,
                                 String machineName,
-                                ComposeService service,
+                                ComposeServiceImpl service,
                                 ProgressMonitor progressMonitor)
             throws ServerException,
                    NotFoundException {
 
         String containerName = generateContainerName(namespace, workspaceId, machineId, machineName);
         String imageName = "eclipse-che/" + containerName;
-        // TODO build should enclose content + args + dockerfile
-        if (service.getContext() != null) {
-            buildImage(service, imageName, doForcePullOnBuild, progressMonitor);
-        } else if (service.getImage() != null) {
-            // TODO do we need that?
-            pullImage(service, imageName, progressMonitor);
-        } else {
-            // not supported
+        if (service.getBuild() == null ||
+            (service.getBuild().getContext() == null && service.getImage() == null)) {
+
             throw new ServerException(format("Compose service '%s' doesn't have neither build not image fields",
                                              machineName));
+        }
+
+        if (service.getBuild().getContext() != null) {
+            buildImage(service, imageName, doForcePullOnBuild, progressMonitor);
+        } else {
+            // TODO do we need that? probably can be removed after move to docker 1.12
+            pullImage(service, imageName, progressMonitor);
         }
 
         return imageName;
     }
 
-    private void buildImage(ComposeService service,
+    private void buildImage(ComposeServiceImpl service,
                             String machineImageName,
                             boolean doForcePullOnBuild,
                             ProgressMonitor progressMonitor)
             throws MachineException {
 
-        long memoryLimit = (long)service.getMemLimit() * 1024 * 1024;
-
         try {
-            docker.buildImage(BuildImageParams.create(service.getContext())
-                                              .withDockerfile(service.getDockerfile())
+            docker.buildImage(BuildImageParams.create(service.getBuild().getContext())
+                                              .withDockerfile(service.getBuild().getDockerfile())
                                               .withForceRemoveIntermediateContainers(true)
                                               .withRepository(machineImageName)
                                               .withAuthConfigs(dockerCredentials.getCredentials())
                                               .withDoForcePull(doForcePullOnBuild)
-                                              .withMemoryLimit(memoryLimit)
+                                              .withMemoryLimit(service.getMemLimit())
                                               .withMemorySwapLimit(-1),
                               progressMonitor);
         } catch (IOException e) {
@@ -364,7 +366,7 @@ public class ComposeMachineProviderImpl implements ComposeMachineInstanceProvide
         }
     }
 
-    private void pullImage(ComposeService service,
+    private void pullImage(ComposeServiceImpl service,
                            String machineImageName,
                            ProgressMonitor progressMonitor) throws NotFoundException,
                                                                    MachineException,
@@ -406,8 +408,6 @@ public class ComposeMachineProviderImpl implements ComposeMachineInstanceProvide
         }
     }
 
-    // TODO remove instance snapshot?
-
     private String createContainer(String namespace,
                                    String workspaceId,
                                    String machineId,
@@ -415,7 +415,7 @@ public class ComposeMachineProviderImpl implements ComposeMachineInstanceProvide
                                    boolean isDev,
                                    String image,
                                    String networkName,
-                                   ComposeService service) throws IOException {
+                                   ComposeServiceImpl service) throws IOException {
         long machineMemory = service.getMemLimit() * 1024L * 1024L;
         long machineMemorySwap = memorySwapMultiplier == -1 ? -1 : (long)(machineMemory * memorySwapMultiplier);
         String containerName = generateContainerName(namespace, workspaceId, machineId, machineName);
@@ -469,7 +469,7 @@ public class ComposeMachineProviderImpl implements ComposeMachineInstanceProvide
 
     private void addSystemWideContainerSettings(String workspaceId,
                                                 boolean isDev,
-                                                ComposeService composeService) throws IOException {
+                                                ComposeServiceImpl composeService) throws IOException {
         List<String> portsToExpose;
         List<String> volumes;
         Map<String, String> env;

@@ -12,6 +12,8 @@ package org.eclipse.che.api.environment.server.compose.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.eclipse.che.api.core.model.workspace.compose.ComposeService;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -21,11 +23,9 @@ import java.util.Objects;
 /**
  * @author Alexander Garagatyi
  */
-public class ComposeService {
+public class ComposeServiceImpl implements ComposeService {
     @JsonProperty("container_name")
     private String              containerName;
-    private String              context;
-    private String              dockerfile;
     private List<String>        command;
     private List<String>        entrypoint;
     private String              image;
@@ -41,16 +41,18 @@ public class ComposeService {
     private List<String>        volumesFrom;
     // todo missing in the model
     @JsonProperty("mem_limit")
-    private Integer             memLimit;
+    private Long                memLimit;
+    private BuildContextImpl    build;
     //todo env_file list
     //todo extends
 
-    public ComposeService() {}
+    public ComposeServiceImpl() {}
 
-    public ComposeService(ComposeService service) {
+    public ComposeServiceImpl(ComposeServiceImpl service) {
         image = service.getImage();
-        context = service.getContext();
-        dockerfile = service.getDockerfile();
+        if (service.getBuild() != null) {
+            build = new BuildContextImpl(service.getBuild());
+        }
         entrypoint = service.getEntrypoint();
         command = service.getCommand();
         environment = service.getEnvironment();
@@ -65,6 +67,7 @@ public class ComposeService {
         memLimit = service.getMemLimit();
     }
 
+    @Override
     public String getImage() {
         return image;
     }
@@ -73,22 +76,16 @@ public class ComposeService {
         this.image = image;
     }
 
-    public String getContext() {
-        return context;
+    @Override
+    public BuildContextImpl getBuild() {
+        return build;
     }
 
-    public void setContext(String context) {
-        this.context = context;
+    public void setBuild(BuildContextImpl build) {
+        this.build = build;
     }
 
-    public String getDockerfile() {
-        return dockerfile;
-    }
-
-    public void setDockerfile(String dockerfile) {
-        this.dockerfile = dockerfile;
-    }
-
+    @Override
     public List<String> getEntrypoint() {
         if (entrypoint == null) {
             entrypoint = new ArrayList<>();
@@ -100,6 +97,7 @@ public class ComposeService {
         this.entrypoint = entrypoint;
     }
 
+    @Override
     public List<String> getCommand() {
         if (command == null) {
             command = new ArrayList<>();
@@ -111,6 +109,7 @@ public class ComposeService {
         this.command = command;
     }
 
+    @Override
     public Map<String, String> getEnvironment() {
         if (environment == null) {
             environment = new HashMap<>();
@@ -122,6 +121,7 @@ public class ComposeService {
         this.environment = environment;
     }
 
+    @Override
     public List<String> getDependsOn() {
         if (dependsOn == null) {
             dependsOn = new ArrayList<>();
@@ -134,6 +134,7 @@ public class ComposeService {
         this.dependsOn = dependsOn;
     }
 
+    @Override
     public String getContainerName() {
         return containerName;
     }
@@ -142,6 +143,7 @@ public class ComposeService {
         this.containerName = containerName;
     }
 
+    @Override
     public List<String> getLinks() {
         if (links == null) {
             links = new ArrayList<>();
@@ -153,6 +155,7 @@ public class ComposeService {
         this.links = links;
     }
 
+    @Override
     public Map<String, String> getLabels() {
         if (labels == null) {
             labels = new HashMap<>();
@@ -164,6 +167,7 @@ public class ComposeService {
         this.labels = labels;
     }
 
+    @Override
     public List<String> getExpose() {
         if (expose == null) {
             expose = new ArrayList<>();
@@ -175,6 +179,7 @@ public class ComposeService {
         this.expose = expose;
     }
 
+    @Override
     public List<String> getPorts() {
         if (ports == null) {
             ports = new ArrayList<>();
@@ -186,6 +191,7 @@ public class ComposeService {
         this.ports = ports;
     }
 
+    @Override
     public List<String> getVolumes() {
         if (volumes == null) {
             volumes = new ArrayList<>();
@@ -197,6 +203,7 @@ public class ComposeService {
         this.volumes = volumes;
     }
 
+    @Override
     public List<String> getVolumesFrom() {
         if (volumesFrom == null) {
             volumesFrom = new ArrayList<>();
@@ -208,22 +215,22 @@ public class ComposeService {
         this.volumesFrom = volumesFrom;
     }
 
-    public Integer getMemLimit() {
+    @Override
+    public Long getMemLimit() {
         return memLimit;
     }
 
-    public void setMemLimit(Integer memLimit) {
+    public void setMemLimit(Long memLimit) {
         this.memLimit = memLimit;
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof ComposeService)) return false;
-        ComposeService service = (ComposeService)o;
+        if (!(o instanceof ComposeServiceImpl)) return false;
+        ComposeServiceImpl service = (ComposeServiceImpl)o;
         return Objects.equals(containerName, service.containerName) &&
-               Objects.equals(context, service.context) &&
-               Objects.equals(dockerfile, service.dockerfile) &&
+               Objects.equals(build, service.build) &&
                Objects.equals(command, service.command) &&
                Objects.equals(entrypoint, service.entrypoint) &&
                Objects.equals(image, service.image) &&
@@ -241,8 +248,7 @@ public class ComposeService {
     @Override
     public int hashCode() {
         return Objects.hash(containerName,
-                            context,
-                            dockerfile,
+                            build,
                             command,
                             entrypoint,
                             image,
@@ -259,10 +265,9 @@ public class ComposeService {
 
     @Override
     public String toString() {
-        return "ComposeService{" +
+        return "ComposeServiceImpl{" +
                "containerName='" + containerName + '\'' +
-               ", context='" + context + '\'' +
-               ", dockerfile='" + dockerfile + '\'' +
+               ", build='" + build + '\'' +
                ", command=" + command +
                ", entrypoint=" + entrypoint +
                ", image='" + image + '\'' +
