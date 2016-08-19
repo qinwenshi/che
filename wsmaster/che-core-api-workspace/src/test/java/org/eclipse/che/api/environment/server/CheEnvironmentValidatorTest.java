@@ -53,20 +53,18 @@ public class CheEnvironmentValidatorTest {
           expectedExceptionsMessageRegExp = "Environment name should not be neither null nor empty")
     public void shouldFailValidationIfEnvNameIsNull() throws Exception {
         EnvironmentDto environment = createConfig();
-        environment.setName(null);
 
 
-        environmentValidator.validate(environment);
+        environmentValidator.validate(null, environment);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class,
           expectedExceptionsMessageRegExp = "Environment name should not be neither null nor empty")
     public void shouldFailValidationIfEnvNameIsEmpty() throws Exception {
         EnvironmentDto environment = createConfig();
-        environment.setName("");
 
 
-        environmentValidator.validate(environment);
+        environmentValidator.validate("", environment);
     }
 
     @Test
@@ -75,7 +73,7 @@ public class CheEnvironmentValidatorTest {
 //        config.withRecipe(newDto(RecipeDto.class).withType("docker"));
 
 
-        environmentValidator.validate(config);
+        environmentValidator.validate("env", config);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class,
@@ -85,7 +83,7 @@ public class CheEnvironmentValidatorTest {
 //        config.withMachineConfigs(null);
 
 
-        environmentValidator.validate(config);
+        environmentValidator.validate("env", config);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class,
@@ -98,7 +96,7 @@ public class CheEnvironmentValidatorTest {
 //              .forEach(machine -> machine.withDev(false));
 
 
-        environmentValidator.validate(config);
+        environmentValidator.validate("env", config);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class,
@@ -113,7 +111,7 @@ public class CheEnvironmentValidatorTest {
 //              .add(devMachine.get().withName("other-name"));
 
 
-        environmentValidator.validate(config);
+        environmentValidator.validate("env", config);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class,
@@ -125,7 +123,7 @@ public class CheEnvironmentValidatorTest {
 //              .withName(null);
 
 
-        environmentValidator.validate(config);
+        environmentValidator.validate("env", config);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class,
@@ -137,7 +135,7 @@ public class CheEnvironmentValidatorTest {
 //              .withName("");
 
 
-        environmentValidator.validate(config);
+        environmentValidator.validate("env", config);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class,
@@ -149,7 +147,7 @@ public class CheEnvironmentValidatorTest {
 //              .withSource(null);
 
 
-        environmentValidator.validate(config);
+        environmentValidator.validate("env", config);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class,
@@ -161,7 +159,7 @@ public class CheEnvironmentValidatorTest {
 //              .withType(null);
 
 
-        environmentValidator.validate(config);
+        environmentValidator.validate("env", config);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class,
@@ -173,7 +171,7 @@ public class CheEnvironmentValidatorTest {
 //              .withType("compose");
 
 
-        environmentValidator.validate(config);
+        environmentValidator.validate("env", config);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class,
@@ -187,7 +185,7 @@ public class CheEnvironmentValidatorTest {
 //              .add(newDto(ServerConfDto.class).withPort(invalidPort));
 
 
-        environmentValidator.validate(config);
+        environmentValidator.validate("env", config);
     }
 
     @DataProvider(name = "invalidPortProvider")
@@ -229,7 +227,7 @@ public class CheEnvironmentValidatorTest {
 //                                              .withProtocol(invalidProtocol));
 
 
-        environmentValidator.validate(config);
+        environmentValidator.validate("env", config);
     }
 
     @DataProvider(name = "invalidProtocolProvider")
@@ -252,7 +250,7 @@ public class CheEnvironmentValidatorTest {
 //              .put(null, "value");
 
 
-        environmentValidator.validate(config);
+        environmentValidator.validate("env", config);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class,
@@ -265,7 +263,7 @@ public class CheEnvironmentValidatorTest {
 //              .put("", "value");
 
 
-        environmentValidator.validate(config);
+        environmentValidator.validate("env", config);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class,
@@ -278,7 +276,7 @@ public class CheEnvironmentValidatorTest {
 //              .put("key", null);
 
 
-        environmentValidator.validate(config);
+        environmentValidator.validate("env", config);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class,
@@ -289,7 +287,7 @@ public class CheEnvironmentValidatorTest {
 //              .get(0)
 //              .withSource(newDto(MachineSourceDto.class).withType("dockerfile"));
 
-        environmentValidator.validate(config);
+        environmentValidator.validate("env", config);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class,
@@ -300,7 +298,7 @@ public class CheEnvironmentValidatorTest {
 //              .get(0)
 //              .withSource(newDto(MachineSourceDto.class).withType("dockerfile").withLocation("localhost"));
 
-        environmentValidator.validate(config);
+        environmentValidator.validate("env", config);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class,
@@ -311,7 +309,7 @@ public class CheEnvironmentValidatorTest {
 //              .get(0)
 //              .withSource(newDto(MachineSourceDto.class).withType("dockerfile").withLocation("ftp://localhost"));
 
-        environmentValidator.validate(config);
+        environmentValidator.validate("env", config);
     }
 
     private EnvironmentDto createConfig() {
@@ -334,7 +332,7 @@ public class CheEnvironmentValidatorTest {
                                                                     .withEnvVariables(new HashMap<>(
                                                                             singletonMap("key1", "value1")));
 
-        return newDto(EnvironmentDto.class).withName("dev-env")
+        return newDto(EnvironmentDto.class)
 //                                           .withMachineConfigs(
 //                                                   new ArrayList<>(singletonList(devMachine)))
                                            .withRecipe(null);

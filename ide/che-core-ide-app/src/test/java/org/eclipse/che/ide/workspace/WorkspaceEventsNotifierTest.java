@@ -63,7 +63,9 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.eclipse.che.api.workspace.shared.dto.event.WorkspaceStatusEvent.EventType.ERROR;
 import static org.eclipse.che.api.workspace.shared.dto.event.WorkspaceStatusEvent.EventType.RUNNING;
@@ -187,11 +189,10 @@ public class WorkspaceEventsNotifierTest {
         when(workspace.getRuntime()).thenReturn(runtime);
         when(runtime.getActiveEnv()).thenReturn(ACTIVE_ENV);
         when(workspace.getConfig()).thenReturn(workspaceConfig);
-        List<EnvironmentDto> environments = new ArrayList<>(1);
+        Map<String, EnvironmentDto> environments = new HashMap<>(3);
         EnvironmentDto environment = mock(EnvironmentDto.class);
-        environments.add(environment);
+        environments.put(ACTIVE_ENV, environment);
         when(workspaceConfig.getEnvironments()).thenReturn(environments);
-        when(environment.getName()).thenReturn(ACTIVE_ENV);
         MachineConfigDto devMachineConfig = mock(MachineConfigDto.class);
 //        when(environment.devMachine()).thenReturn(devMachineConfig);
         when(devMachineConfig.getName()).thenReturn(MACHINE_NAME);
@@ -212,11 +213,10 @@ public class WorkspaceEventsNotifierTest {
         when(workspace.getRuntime()).thenReturn(runtime);
         when(runtime.getActiveEnv()).thenReturn(ACTIVE_ENV);
         when(workspace.getConfig()).thenReturn(workspaceConfig);
-        List<EnvironmentDto> environments = new ArrayList<>(1);
+        Map<String, EnvironmentDto> environments = new HashMap<>(3);
         EnvironmentDto environment = mock(EnvironmentDto.class);
-        environments.add(environment);
+        environments.put(ACTIVE_ENV, environment);
         when(workspaceConfig.getEnvironments()).thenReturn(environments);
-        when(environment.getName()).thenReturn(ACTIVE_ENV);
         MachineConfigDto devMachineConfig = mock(MachineConfigDto.class);
 //        when(environment.devMachine()).thenReturn(devMachineConfig);
         when(devMachineConfig.getName()).thenReturn(MACHINE_NAME);
@@ -355,11 +355,10 @@ public class WorkspaceEventsNotifierTest {
         when(workspace.getRuntime()).thenReturn(runtime);
         when(runtime.getActiveEnv()).thenReturn(ACTIVE_ENV);
         when(workspace.getConfig()).thenReturn(workspaceConfig);
-        List<EnvironmentDto> environments = new ArrayList<>(1);
+        Map<String, EnvironmentDto> environments = new HashMap<>(3);
         EnvironmentDto environment = mock(EnvironmentDto.class);
-        environments.add(environment);
+        environments.put(ACTIVE_ENV, environment);
         when(workspaceConfig.getEnvironments()).thenReturn(environments);
-        when(environment.getName()).thenReturn(ACTIVE_ENV);
         MachineConfigDto devMachineConfig = mock(MachineConfigDto.class);
 //        when(environment.devMachine()).thenReturn(devMachineConfig);
         when(devMachineConfig.getName()).thenReturn(MACHINE_NAME);

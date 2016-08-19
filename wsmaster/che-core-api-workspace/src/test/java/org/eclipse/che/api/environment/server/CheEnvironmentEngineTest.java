@@ -158,6 +158,7 @@ public class CheEnvironmentEngineTest {
     public void shouldBeAbleToStartEnvironment() throws Exception {
         // given
         EnvironmentImpl env = createEnv();
+        String envName = "env-1";
         String workspaceId = "wsId";
         List<Instance> expectedMachines = new ArrayList<>();
         when(instanceProvider.createInstance(any(Machine.class),
@@ -171,7 +172,11 @@ public class CheEnvironmentEngineTest {
                 });
 
         // when
-        List<Instance> machines = engine.start(workspaceId, env, false, messageConsumer);
+        List<Instance> machines = engine.start(workspaceId,
+                                               envName,
+                                               env,
+                                               false,
+                                               messageConsumer);
 
         // then
         assertEquals(machines, expectedMachines);
@@ -209,9 +214,11 @@ public class CheEnvironmentEngineTest {
         List<Instance> instances = startEnv();
         Instance instance = instances.get(0);
         EnvironmentImpl env = createEnv();
+        String envName = "env-1";
 
         // when
         engine.start(instance.getWorkspaceId(),
+                     envName,
                      env,
                      false,
                      messageConsumer);
@@ -455,6 +462,7 @@ public class CheEnvironmentEngineTest {
 
     private List<Instance> startEnv() throws Exception {
         EnvironmentImpl env = createEnv();
+        String envName = "env-1";
         String workspaceId = "wsId";
         when(instanceProvider.createInstance(any(Machine.class),
                                              any(LineConsumer.class)))
@@ -465,7 +473,11 @@ public class CheEnvironmentEngineTest {
                 });
 
         // when
-        return engine.start(workspaceId, env, false, messageConsumer);
+        return engine.start(workspaceId,
+                            envName,
+                            env,
+                            false,
+                            messageConsumer);
     }
 
     private static MachineConfigImpl createConfig(boolean isDev) {
@@ -482,8 +494,7 @@ public class CheEnvironmentEngineTest {
         List<MachineConfigImpl> machines = new ArrayList<>();
         machines.add(createConfig(true));
         machines.add(createConfig(false));
-        return new EnvironmentImpl("envName",
-                                   null,
+        return new EnvironmentImpl(null,
                                    null);
                                    //machines); use compose format
     }

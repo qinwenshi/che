@@ -469,14 +469,17 @@ public class WorkspaceService extends Service {
                                        @PathParam("id")
                                        String id,
                                        @ApiParam(value = "The new environment", required = true)
-                                       EnvironmentDto newEnvironment) throws ServerException,
+                                       EnvironmentDto newEnvironment,
+                                       @ApiParam("The name of the environment")
+                                       @QueryParam("name")
+                                       String envName) throws ServerException,
                                                                              BadRequestException,
                                                                              NotFoundException,
                                                                              ConflictException,
                                                                              ForbiddenException {
         requiredNotNull(newEnvironment, "New environment");
         final WorkspaceImpl workspace = workspaceManager.getWorkspace(id);
-        workspace.getConfig().getEnvironments().add(new EnvironmentImpl(newEnvironment));
+        workspace.getConfig().getEnvironments().put(envName, new EnvironmentImpl(newEnvironment));
         validator.validateConfig(workspace.getConfig());
         return linksInjector.injectLinks(asDto(workspaceManager.updateWorkspace(id, workspace)), getServiceContext());
     }
@@ -506,11 +509,11 @@ public class WorkspaceService extends Service {
                                                                         ForbiddenException {
         requiredNotNull(update, "Environment description");
         final WorkspaceImpl workspace = workspaceManager.getWorkspace(id);
-        final List<EnvironmentImpl> environments = workspace.getConfig().getEnvironments();
-        if (!environments.removeIf(env -> env.getName().equals(envName))) {
+        final Map<String, EnvironmentImpl> environments = workspace.getConfig().getEnvironments();
+        if (environments.remove(envName) == null) {
             throw new NotFoundException(format("Workspace '%s' doesn't contain environment '%s'", id, envName));
         }
-        workspace.getConfig().getEnvironments().add(new EnvironmentImpl(update));
+        workspace.getConfig().getEnvironments().put(envName, new EnvironmentImpl(update));
         validator.validateConfig(workspace.getConfig());
         return linksInjector.injectLinks(asDto(workspaceManager.updateWorkspace(id, workspace)), getServiceContext());
     }
@@ -534,7 +537,7 @@ public class WorkspaceService extends Service {
                                                          ConflictException,
                                                          ForbiddenException {
         final WorkspaceImpl workspace = workspaceManager.getWorkspace(id);
-        if (workspace.getConfig().getEnvironments().removeIf(e -> e.getName().equals(envName))) {
+        if (workspace.getConfig().getEnvironments().remove(envName) != null) {
             workspaceManager.updateWorkspace(id, workspace);
         }
     }

@@ -19,12 +19,6 @@ import java.util.Map;
  * @author Alexander Garagatyi
  */
 public interface Environment {
-
-    /**
-     * Returns environment display name. It is mandatory and unique per workspace
-     */
-    String getName();
-
     /**
      * Returns the recipe (the main script) to define this environment (compose, kubernetes pod).
      * Type of this recipe defines engine for composing machines network runtime

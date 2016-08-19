@@ -43,7 +43,6 @@ import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
 import java.util.List;
-import java.util.Optional;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.Arrays.asList;
@@ -884,11 +883,10 @@ public class WorkspaceManagerTest {
     }
 
     private RuntimeDescriptor createDescriptor(WorkspaceImpl workspace, WorkspaceStatus status) {
-        Optional<EnvironmentImpl> environmentOpt = workspace.getConfig().getEnvironment(workspace.getConfig().getDefaultEnv());
-        assertTrue(environmentOpt.isPresent());
-        EnvironmentImpl environment = environmentOpt.get();
+        EnvironmentImpl environment = workspace.getConfig().getEnvironments().get(workspace.getConfig().getDefaultEnv());
+        assertNotNull(environment);
 
-        final WorkspaceRuntimeImpl runtime = new WorkspaceRuntimeImpl(environment.getName());
+        final WorkspaceRuntimeImpl runtime = new WorkspaceRuntimeImpl(workspace.getConfig().getDefaultEnv());
 //        for (MachineConfigImpl machineConfig : environment.getMachineConfigs()) {
 //            final MachineImpl machine = MachineImpl.builder()
 //                                                   .setConfig(machineConfig)
@@ -928,8 +926,7 @@ public class WorkspaceManagerTest {
         return WorkspaceConfigImpl.builder()
                                   .setName("dev-workspace")
                                   .setDefaultEnv("dev-env")
-                                  .setEnvironments(singletonList(new EnvironmentImpl("dev-env",
-                                                                                     null,
+                                  .setEnvironments(singletonMap("dev-env", new EnvironmentImpl(null,
                                                                                      null)))
 //                                                                                     singletonList(devMachine))))
                                   .build();

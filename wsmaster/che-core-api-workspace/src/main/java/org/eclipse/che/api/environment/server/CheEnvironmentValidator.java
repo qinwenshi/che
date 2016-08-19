@@ -44,8 +44,7 @@ public class CheEnvironmentValidator {
         this.machineInstanceProviders = machineInstanceProviders;
     }
 
-    public void validate(Environment env) throws IllegalArgumentException {
-        String envName = env.getName();
+    public void validate(String envName, Environment env) throws IllegalArgumentException {
         checkArgument(envName != null && !envName.isEmpty(),
                       "Environment name should not be neither null nor empty");
         // TODO use compose format

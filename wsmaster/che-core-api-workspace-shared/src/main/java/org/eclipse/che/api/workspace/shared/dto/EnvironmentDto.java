@@ -26,14 +26,6 @@ public interface EnvironmentDto extends Environment {
 
     @Override
     @FactoryParameter(obligation = MANDATORY)
-    String getName();
-
-    EnvironmentDto withName(String name);
-
-    void setName(String name);
-
-    @Override
-    @FactoryParameter(obligation = MANDATORY)
     EnvironmentRecipeDto getRecipe();
 
     void setRecipe(EnvironmentRecipeDto recipe);

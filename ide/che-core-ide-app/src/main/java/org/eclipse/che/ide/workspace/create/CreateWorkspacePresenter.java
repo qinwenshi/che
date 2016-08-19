@@ -38,7 +38,9 @@ import org.eclipse.che.ide.context.BrowserQueryFieldRenderer;
 import org.eclipse.che.ide.workspace.create.CreateWorkspaceView.HidePopupCallBack;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.eclipse.che.api.machine.shared.Constants.WS_MACHINE_NAME;
 
@@ -237,7 +239,7 @@ public class CreateWorkspacePresenter implements CreateWorkspaceView.ActionDeleg
                                      .withDev(true)
                                      .withLimits(dtoFactory.createDto(LimitsDto.class).withRam(2048)));
 
-        List<EnvironmentDto> environments = new ArrayList<>();
+        Map<String, EnvironmentDto> environments = new HashMap<>();
         // TODO rework to use compose format
 //        environments.add(dtoFactory.createDto(EnvironmentDto.class)
 //                                   .withName(wsName)

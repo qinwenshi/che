@@ -166,7 +166,7 @@ public class StackLoaderTest {
                                                                                                     .withProtocol("someprotocol")
                                                                                                     .withPath("/some/path")));
 
-        EnvironmentDto environmentDto = newDto(EnvironmentDto.class).withName("name");
+        EnvironmentDto environmentDto = newDto(EnvironmentDto.class);
 //                                                                    .withRecipe(recipeDto)
 //                                                                    .withMachineConfigs(Collections.singletonList(machineConfig));
 
@@ -179,7 +179,7 @@ public class StackLoaderTest {
                                                                                 .withLinks(Collections.singletonList(link))
                                                                                 .withDefaultEnv("some Default Env name")
                                                                                 .withProjects(Collections.singletonList(projectConfigDto))
-                                                                                .withEnvironments(Collections.singletonList(environmentDto))
+                                                                                .withEnvironments(Collections.singletonMap("name", environmentDto))
                                                                                 .withCommands(Collections.singletonList(commandDto));
 
         stackDtoDescriptor.setWorkspaceConfig(workspaceConfigDto);

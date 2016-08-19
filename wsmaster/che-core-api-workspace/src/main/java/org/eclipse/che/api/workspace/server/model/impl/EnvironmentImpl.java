@@ -22,35 +22,22 @@ import java.util.stream.Collectors;
  * @author Yevhenii Voevodin
  */
 public class EnvironmentImpl implements Environment {
-    private String                           name;
     private EnvironmentRecipeImpl            environmentRecipe;
     private Map<String, ExtendedMachineImpl> machines;
 
-    public EnvironmentImpl(String name,
-                           EnvironmentRecipeImpl environmentRecipe,
+    public EnvironmentImpl(EnvironmentRecipeImpl environmentRecipe,
                            Map<String, ExtendedMachineImpl> machines) {
-        this.name = name;
         this.environmentRecipe = environmentRecipe;
         this.machines = machines;
     }
 
     public EnvironmentImpl(Environment environment) {
-        this.name = environment.getName();
         this.environmentRecipe = new EnvironmentRecipeImpl(environment.getRecipe());
         this.machines = environment.getMachines()
                                    .entrySet()
                                    .stream()
                                    .collect(Collectors.toMap(Map.Entry::getKey,
                                                              entry -> new ExtendedMachineImpl(entry.getValue())));
-    }
-
-    @Override
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     public EnvironmentRecipeImpl getRecipe() {
@@ -75,13 +62,12 @@ public class EnvironmentImpl implements Environment {
         if (this == o) return true;
         if (!(o instanceof EnvironmentImpl)) return false;
         EnvironmentImpl that = (EnvironmentImpl)o;
-        return Objects.equals(name, that.name) &&
-               Objects.equals(environmentRecipe, that.environmentRecipe) &&
+        return Objects.equals(environmentRecipe, that.environmentRecipe) &&
                Objects.equals(machines, that.machines);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, environmentRecipe, machines);
+        return Objects.hash(environmentRecipe, machines);
     }
 }

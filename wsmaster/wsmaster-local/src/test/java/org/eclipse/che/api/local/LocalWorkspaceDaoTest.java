@@ -127,7 +127,7 @@ public class LocalWorkspaceDaoTest {
 //        final EnvironmentImpl env1 = new EnvironmentImpl("my-environment", recipe, asList(machineCfg1, machineCfg2));
 //        final EnvironmentImpl env2 = new EnvironmentImpl("my-environment-2", recipe, singletonList(machineCfg1));
 
-        final List<EnvironmentImpl> environments = new ArrayList<>();
+        Map<String, EnvironmentImpl> environments = new HashMap<>();
 //        environments.add(env1);
 //        environments.add(env2);
 

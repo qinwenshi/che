@@ -44,7 +44,6 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
-import java.util.Collections;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -133,7 +132,7 @@ public class FactoryBuilderTest {
 //        environmentDto.getMachineConfigs().add(dto.createDto(MachineConfigDto.class).withType(null));
         return new Object[][] {
                 {dto.clone(factory).withWorkspace(factory.getWorkspace().withDefaultEnv(null)) },
-                {dto.clone(factory).withWorkspace(factory.getWorkspace().withEnvironments(Collections.singletonList(environmentDto))) }
+                {dto.clone(factory).withWorkspace(factory.getWorkspace().withEnvironments(singletonMap("test", environmentDto))) }
         };
     }
 
@@ -150,7 +149,7 @@ public class FactoryBuilderTest {
 //        environmentDto.getMachineConfigs().get(0).withDev(false)
 //                                                .withLimits(dto.newDto(LimitsDto.class).withRam(0));
         return new Object[][] {
-                {dto.clone(factory).withWorkspace(factory.getWorkspace().withEnvironments(Collections.singletonList(environmentDto))) }
+                {dto.clone(factory).withWorkspace(factory.getWorkspace().withEnvironments(singletonMap("test", environmentDto))) }
         };
     }
 
@@ -199,8 +198,7 @@ public class FactoryBuilderTest {
                                                                                .withType("maven")
                                                                                .withCommandLine("mvn test")))
                                                 .withDefaultEnv("env1")
-                                                .withEnvironments(singletonList(dto.createDto(EnvironmentDto.class)
-                                                                                   .withName("test")
+                                                .withEnvironments(singletonMap("test", dto.createDto(EnvironmentDto.class)
 //                                                                                   .withMachineConfigs(singletonList(machineConfig))
 //                                                                                   .withRecipe(dto.createDto(RecipeDto.class)
 //                                                                                                  .withType("sometype")

@@ -182,6 +182,8 @@ public class CheEnvironmentEngine {
      *
      * @param workspaceId
      *         ID of workspace that owns provided environment
+     * @param envName
+     *         name of environment
      * @param env
      *         environment to start
      * @param recover
@@ -193,6 +195,7 @@ public class CheEnvironmentEngine {
      *         if other error occurs
      */
     public List<Instance> start(String workspaceId,
+                                String envName,
                                 Environment env,
                                 boolean recover,
                                 MessageConsumer<MachineLogMessage> messageConsumer) throws ServerException,
@@ -200,6 +203,7 @@ public class CheEnvironmentEngine {
         String networkId = NameGenerator.generate(workspaceId, 16);
 
         initializeEnvironment(workspaceId,
+                              envName,
                               env,
                               networkId,
                               messageConsumer);
@@ -449,6 +453,7 @@ public class CheEnvironmentEngine {
     }
 
     private void initializeEnvironment(String workspaceId,
+                                       String envName,
                                        Environment env,
                                        String networkId,
                                        MessageConsumer<MachineLogMessage> messageConsumer)
@@ -465,7 +470,7 @@ public class CheEnvironmentEngine {
                                                                     composeEnvironment,
                                                                     messageConsumer,
                                                                     EnvStatus.STARTING,
-                                                                    env.getName(),
+                                                                    envName,
                                                                     networkId);
 
         try (StripedLocks.WriteLock lock = stripedLocks.acquireWriteLock(workspaceId)) {

@@ -65,18 +65,19 @@ public final class DtoConverter {
 
     /** Converts {@link WorkspaceConfig} to {@link WorkspaceConfigDto}. */
     public static WorkspaceConfigDto asDto(WorkspaceConfig workspace) {
-        final List<CommandDto> commands = workspace.getCommands()
+        List<CommandDto> commands = workspace.getCommands()
+                                             .stream()
+                                             .map(DtoConverter::asDto)
+                                             .collect(toList());
+        List<ProjectConfigDto> projects = workspace.getProjects()
                                                    .stream()
                                                    .map(DtoConverter::asDto)
                                                    .collect(toList());
-        final List<ProjectConfigDto> projects = workspace.getProjects()
-                                                         .stream()
-                                                         .map(DtoConverter::asDto)
-                                                         .collect(toList());
-        final List<EnvironmentDto> environments = workspace.getEnvironments()
-                                                           .stream()
-                                                           .map(DtoConverter::asDto)
-                                                           .collect(toList());
+        Map<String, EnvironmentDto> environments = workspace.getEnvironments()
+                                                            .entrySet()
+                                                            .stream()
+                                                            .collect(toMap(Map.Entry::getKey,
+                                                                           entry -> asDto(entry.getValue())));
 
         return newDto(WorkspaceConfigDto.class).withName(workspace.getName())
                                                .withDefaultEnv(workspace.getDefaultEnv())
@@ -146,7 +147,7 @@ public final class DtoConverter {
 
     /** Converts {@link Environment} to {@link EnvironmentDto}. */
     public static EnvironmentDto asDto(Environment env) {
-        final EnvironmentDto envDto = newDto(EnvironmentDto.class).withName(env.getName());
+        final EnvironmentDto envDto = newDto(EnvironmentDto.class);
         envDto.withMachines(env.getMachines()
                                .entrySet()
                                .stream()
