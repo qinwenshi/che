@@ -40,6 +40,7 @@ import org.eclipse.che.plugin.docker.client.ProgressMonitor;
 import org.eclipse.che.plugin.docker.client.UserSpecificDockerRegistryCredentialsProvider;
 import org.eclipse.che.plugin.docker.client.exception.ContainerNotFoundException;
 import org.eclipse.che.plugin.docker.client.exception.ImageNotFoundException;
+import org.eclipse.che.plugin.docker.client.exception.NetworkNotFoundException;
 import org.eclipse.che.plugin.docker.client.json.ContainerConfig;
 import org.eclipse.che.plugin.docker.client.json.HostConfig;
 import org.eclipse.che.plugin.docker.client.json.PortBinding;
@@ -295,14 +296,8 @@ public class ComposeMachineProviderImpl implements ComposeMachineInstanceProvide
     @Override
     public void startNetwork(String networkName) throws ServerException {
         try {
-//            List<Network> networks = docker.getNetworks(
-//                    GetNetworksParams.create()
-//                                     .withFilters(new Filters().withFilter("name", networkName)));
-//
-//            if (networks.size() == 0) {
             docker.createNetwork(CreateNetworkParams.create(new NewNetwork().withName(networkName)
                                                                             .withCheckDuplicate(true)));
-//            }
         } catch (IOException e) {
             throw new ServerException(e.getLocalizedMessage(), e);
         }
@@ -312,6 +307,7 @@ public class ComposeMachineProviderImpl implements ComposeMachineInstanceProvide
     public void stopNetwork(String networkName) throws ServerException {
         try {
             docker.removeNetwork(RemoveNetworkParams.create(networkName));
+        } catch (NetworkNotFoundException ignore) {
         } catch (IOException e) {
             throw new ServerException(e.getLocalizedMessage(), e);
         }
