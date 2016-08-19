@@ -10,8 +10,8 @@
  *******************************************************************************/
 package org.eclipse.che.api.environment.server.compose;
 
-import org.eclipse.che.api.environment.server.compose.model.ComposeEnvironment;
-import org.eclipse.che.api.environment.server.compose.model.ComposeService;
+import org.eclipse.che.api.environment.server.compose.model.ComposeEnvironmentImpl;
+import org.eclipse.che.api.environment.server.compose.model.ComposeServiceImpl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,11 +30,8 @@ import static java.lang.String.format;
  * author Alexander Garagatyi
  */
 public class ComposeServicesStartStrategy {
-    public List<String> order(ComposeEnvironment composeEnvironment) throws IllegalArgumentException {
+    public List<String> order(ComposeEnvironmentImpl composeEnvironment) throws IllegalArgumentException {
         // TODO if dev machine has the same weight as other machines put it in the head of queue
-//        final MachineConfigImpl devCfg = removeFirstMatching(startConfigs, MachineConfig::isDev);
-//        startConfigs.add(0, devCfg);
-//        configs = new ArrayList<>(configs);
 
         // move start of dependent machines after machines they depends on
         Map<String, Integer> weights = weightMachines(composeEnvironment.getServices());
@@ -42,14 +39,14 @@ public class ComposeServicesStartStrategy {
         return sortByWeight(composeEnvironment.getServices(), weights);
     }
 
-    private Map<String, Integer> weightMachines(Map<String, ComposeService> services) throws IllegalArgumentException {
+    private Map<String, Integer> weightMachines(Map<String, ComposeServiceImpl> services) throws IllegalArgumentException {
         HashMap<String, Integer> weights = new HashMap<>();
         Set<String> machinesLeft = new HashSet<>(services.keySet());
 
         // create dependency graph
         Map<String, List<String>> dependencies = new HashMap<>(services.size());
-        for (Map.Entry<String, ComposeService> serviceEntry : services.entrySet()) {
-            ComposeService service = serviceEntry.getValue();
+        for (Map.Entry<String, ComposeServiceImpl> serviceEntry : services.entrySet()) {
+            ComposeServiceImpl service = serviceEntry.getValue();
 
             ArrayList<String> machineDependencies = new ArrayList<>(service.getDependsOn().size() +
                                                                     service.getLinks().size());
@@ -114,9 +111,9 @@ public class ComposeServicesStartStrategy {
         return service;
     }
 
-    private List<String> sortByWeight(Map<String, ComposeService> services,
+    private List<String> sortByWeight(Map<String, ComposeServiceImpl> services,
                                                     Map<String, Integer> weights) {
-        TreeMap<String, ComposeService> sortedServices =
+        TreeMap<String, ComposeServiceImpl> sortedServices =
                 new TreeMap<>((o1, o2) -> weights.get(o1).compareTo(weights.get(o2)));
 
         sortedServices.putAll(services);

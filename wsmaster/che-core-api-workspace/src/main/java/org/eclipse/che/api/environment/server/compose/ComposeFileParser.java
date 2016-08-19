@@ -16,9 +16,8 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.eclipse.che.api.core.ServerException;
 import org.eclipse.che.api.core.model.workspace.Environment;
 import org.eclipse.che.api.core.model.workspace.EnvironmentRecipe;
-import org.eclipse.che.api.environment.server.compose.model.ComposeEnvironment;
+import org.eclipse.che.api.environment.server.compose.model.ComposeEnvironmentImpl;
 import org.eclipse.che.api.machine.server.exception.MachineException;
-import org.eclipse.che.api.workspace.server.model.impl.EnvironmentImpl;
 import org.eclipse.che.commons.env.EnvironmentContext;
 import org.eclipse.che.commons.lang.IoUtil;
 import org.slf4j.Logger;
@@ -49,13 +48,12 @@ public class ComposeFileParser {
         this.apiEndpoint = apiEndpoint;
     }
 
-    public ComposeEnvironment parse(Environment environment) throws ServerException {
+    public ComposeEnvironmentImpl parse(Environment environment) throws ServerException {
         // assert env
         // assert recipe
         // assert content type
         // assert content || location
         // assert type
-        EnvironmentImpl envImpl = new EnvironmentImpl(environment);
         String recipeContent = getContentOfRecipe(environment.getRecipe());
         return parseEnvironmentRecipeContent(recipeContent,
                                              environment.getRecipe().getContentType());
@@ -69,14 +67,14 @@ public class ComposeFileParser {
         }
     }
 
-    private ComposeEnvironment parseEnvironmentRecipeContent(String recipeContent, String contentType) {
-        ComposeEnvironment composeEnvironment;
+    private ComposeEnvironmentImpl parseEnvironmentRecipeContent(String recipeContent, String contentType) {
+        ComposeEnvironmentImpl composeEnvironment;// TODO do we need JSON here?
         switch (contentType) {
             case "application/x-yaml":
             case "text/yaml":
             case "text/x-yaml":
                 try {
-                    composeEnvironment = YAML_PARSER.readValue(recipeContent, ComposeEnvironment.class);
+                    composeEnvironment = YAML_PARSER.readValue(recipeContent, ComposeEnvironmentImpl.class);
                 } catch (IOException e) {
                     throw new IllegalArgumentException(
                             "Parsing of environment configuration failed. " + e.getLocalizedMessage());

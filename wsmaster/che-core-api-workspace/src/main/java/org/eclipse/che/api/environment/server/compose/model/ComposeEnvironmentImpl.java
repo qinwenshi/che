@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.eclipse.che.api.environment.server.compose.model;
 
+import org.eclipse.che.api.core.model.workspace.compose.ComposeEnvironment;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -18,21 +20,26 @@ import java.util.stream.Collectors;
 /**
  * @author Alexander Garagatyi
  */
-public class ComposeEnvironment {
-    private String                      version;
-    private Map<String, ComposeService> services;
+public class ComposeEnvironmentImpl implements ComposeEnvironment {
+    //todo
+    // will we support network entry
+    // will we support version 1?
+    // will we support volumes
+    private String                          version;
+    private Map<String, ComposeServiceImpl> services;
 
-    public ComposeEnvironment() {}
+    public ComposeEnvironmentImpl() {}
 
-    public ComposeEnvironment(ComposeEnvironment recipeContent) {
+    public ComposeEnvironmentImpl(ComposeEnvironmentImpl recipeContent) {
         version = recipeContent.getVersion();
         services = recipeContent.getServices()
                                 .entrySet()
                                 .stream()
                                 .collect(Collectors.toMap(Map.Entry::getKey,
-                                                          entry -> new ComposeService(entry.getValue())));
+                                                          entry -> new ComposeServiceImpl(entry.getValue())));
     }
 
+    @Override
     public String getVersion() {
         return version;
     }
@@ -41,22 +48,23 @@ public class ComposeEnvironment {
         this.version = version;
     }
 
-    public Map<String, ComposeService> getServices() {
+    @Override
+    public Map<String, ComposeServiceImpl> getServices() {
         if (services == null) {
             services = new HashMap<>();
         }
         return services;
     }
 
-    public void setServices(Map<String, ComposeService> services) {
+    public void setServices(Map<String, ComposeServiceImpl> services) {
         this.services = services;
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof ComposeEnvironment)) return false;
-        ComposeEnvironment that = (ComposeEnvironment)o;
+        if (!(o instanceof ComposeEnvironmentImpl)) return false;
+        ComposeEnvironmentImpl that = (ComposeEnvironmentImpl)o;
         return Objects.equals(version, that.version) &&
                Objects.equals(services, that.services);
     }
@@ -68,7 +76,7 @@ public class ComposeEnvironment {
 
     @Override
     public String toString() {
-        return "ComposeEnvironment{" +
+        return "ComposeEnvironmentImpl{" +
                "version='" + version + '\'' +
                ", services=" + services +
                '}';
