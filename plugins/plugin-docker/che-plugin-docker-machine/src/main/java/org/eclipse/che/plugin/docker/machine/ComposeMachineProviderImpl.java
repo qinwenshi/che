@@ -328,8 +328,8 @@ public class ComposeMachineProviderImpl implements ComposeMachineInstanceProvide
 
         String containerName = generateContainerName(namespace, workspaceId, machineId, machineName);
         String imageName = "eclipse-che/" + containerName;
-        if (service.getBuild() == null ||
-            (service.getBuild().getContext() == null && service.getImage() == null)) {
+        if ((service.getBuild() == null || service.getBuild().getContext() == null)
+            && service.getImage() == null) {
 
             throw new ServerException(format("Compose service '%s' doesn't have neither build not image fields",
                                              machineName));
