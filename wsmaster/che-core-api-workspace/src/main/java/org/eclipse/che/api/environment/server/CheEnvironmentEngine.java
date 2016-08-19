@@ -282,8 +282,8 @@ public class CheEnvironmentEngine {
     // TODO change config to compose service
     public Instance startMachine(String workspaceId,
                                  MachineConfig machineConfig) throws ServerException,
-                                                                         EnvironmentNotRunningException,
-                                                                         ConflictException {
+                                                                     EnvironmentNotRunningException,
+                                                                     ConflictException {
         MachineConfig machineConfigCopy = new MachineConfigImpl(machineConfig);
         EnvironmentHolder environmentHolder;
         try (StripedLocks.ReadLock lock = stripedLocks.acquireReadLock(workspaceId)) {
@@ -378,9 +378,12 @@ public class CheEnvironmentEngine {
     /**
      * Saves machine into snapshot.
      *
-     * @param namespace namespace of the workspace
-     * @param workspaceId ID of workspace that owns environment
-     * @param machineId ID of machine to save
+     * @param namespace
+     *         namespace of the workspace
+     * @param workspaceId
+     *         ID of workspace that owns environment
+     * @param machineId
+     *         ID of machine to save
      * @return snapshot
      * @throws EnvironmentNotRunningException
      *         if environment of machine is not running
@@ -541,7 +544,7 @@ public class CheEnvironmentEngine {
                         throw new ServerException("Environment start is interrupted.");
                     }
                     composeService = environmentHolder.composeEnvironment.getServices().get(machineName);
-                    }
+                }
                 // should not happen
                 if (composeService == null) {
                     LOG.error("Compose service with name {} is missing in compose environment", machineName);
@@ -575,8 +578,8 @@ public class CheEnvironmentEngine {
                             queue.poll();
                             queuePolled = true;
                         }
-                        }
                     }
+                }
 
                 // If machine config is not polled from the queue
                 // then environment was stopped and newly created machine
@@ -605,7 +608,7 @@ public class CheEnvironmentEngine {
                     }
                     throw new ServerException("Workspace '" + workspaceId +
                                               "' start interrupted. Workspace stopped before all its machines started");
-                    }
+                }
 
                 machineName = queuePeekOrFail(workspaceId);
             }
@@ -613,7 +616,7 @@ public class CheEnvironmentEngine {
             EnvironmentHolder env;
             try (StripedLocks.WriteLock lock = stripedLocks.acquireWriteLock(workspaceId)) {
                 env = environments.remove(workspaceId);
-        }
+            }
 
             try {
                 stopMachines(env.networkId, env.machines);
@@ -944,8 +947,8 @@ public class CheEnvironmentEngine {
         final String                             name;
         final String                             networkId;
 
-        List<Instance>                     machines;
-        EnvStatus                          status;
+        List<Instance> machines;
+        EnvStatus      status;
 
         EnvironmentHolder(List<String> startQueue,
                           ComposeEnvironmentImpl composeEnvironment,
