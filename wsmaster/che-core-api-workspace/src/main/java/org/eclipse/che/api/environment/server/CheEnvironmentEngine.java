@@ -826,11 +826,6 @@ public class CheEnvironmentEngine {
      */
     private void stopMachines(String networkId,
                               List<Instance> machines) {
-        try {
-            composeProvider.stopNetwork(networkId);
-        } catch (ServerException netExc) {
-            LOG.error(netExc.getLocalizedMessage(), netExc);
-        }
         for (Instance machine : machines) {
             try {
                 machine.destroy();
@@ -840,6 +835,11 @@ public class CheEnvironmentEngine {
                                  machine.getWorkspaceId()),
                           ex);
             }
+        }
+        try {
+            composeProvider.stopNetwork(networkId);
+        } catch (ServerException netExc) {
+            LOG.error(netExc.getLocalizedMessage(), netExc);
         }
     }
 
