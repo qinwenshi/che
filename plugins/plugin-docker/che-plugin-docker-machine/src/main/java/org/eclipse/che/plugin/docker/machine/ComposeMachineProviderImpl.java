@@ -335,7 +335,7 @@ public class ComposeMachineProviderImpl implements ComposeMachineInstanceProvide
                                              machineName));
         }
 
-        if (service.getBuild().getContext() != null) {
+        if (service.getBuild() != null && service.getBuild().getContext() != null) {
             buildImage(service, imageName, doForcePullOnBuild, progressMonitor);
         } else {
             // TODO do we need that? probably can be removed after move to docker 1.12
