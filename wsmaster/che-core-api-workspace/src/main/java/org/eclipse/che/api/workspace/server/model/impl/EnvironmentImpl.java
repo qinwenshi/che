@@ -22,17 +22,17 @@ import java.util.stream.Collectors;
  * @author Yevhenii Voevodin
  */
 public class EnvironmentImpl implements Environment {
-    private EnvironmentRecipeImpl            environmentRecipe;
+    private EnvironmentRecipeImpl            recipe;
     private Map<String, ExtendedMachineImpl> machines;
 
-    public EnvironmentImpl(EnvironmentRecipeImpl environmentRecipe,
+    public EnvironmentImpl(EnvironmentRecipeImpl recipe,
                            Map<String, ExtendedMachineImpl> machines) {
-        this.environmentRecipe = environmentRecipe;
+        this.recipe = recipe;
         this.machines = machines;
     }
 
     public EnvironmentImpl(Environment environment) {
-        this.environmentRecipe = new EnvironmentRecipeImpl(environment.getRecipe());
+        this.recipe = new EnvironmentRecipeImpl(environment.getRecipe());
         this.machines = environment.getMachines()
                                    .entrySet()
                                    .stream()
@@ -41,11 +41,11 @@ public class EnvironmentImpl implements Environment {
     }
 
     public EnvironmentRecipeImpl getRecipe() {
-        return environmentRecipe;
+        return recipe;
     }
 
     public void setRecipe(EnvironmentRecipeImpl environmentRecipe) {
-        this.environmentRecipe = environmentRecipe;
+        this.recipe = environmentRecipe;
     }
 
     @Override
@@ -62,12 +62,12 @@ public class EnvironmentImpl implements Environment {
         if (this == o) return true;
         if (!(o instanceof EnvironmentImpl)) return false;
         EnvironmentImpl that = (EnvironmentImpl)o;
-        return Objects.equals(environmentRecipe, that.environmentRecipe) &&
+        return Objects.equals(recipe, that.recipe) &&
                Objects.equals(machines, that.machines);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(environmentRecipe, machines);
+        return Objects.hash(recipe, machines);
     }
 }

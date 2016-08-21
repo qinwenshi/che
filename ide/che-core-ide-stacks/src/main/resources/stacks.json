@@ -1,2 +1,76 @@
 [
+  {
+    "id": "java-default",
+    "creator": "ide",
+    "name": "Java",
+    "description": "Default Java Stack with JDK 8, Maven and Tomcat.",
+    "scope": "general",
+    "tags": [
+      "Java",
+      "JDK",
+      "Maven",
+      "Tomcat",
+      "Subversion",
+      "Ubuntu",
+      "Git"
+    ],
+    "components": [
+      {
+        "name": "JDK",
+        "version": "1.8.0_45"
+      },
+      {
+        "name": "Maven",
+        "version": "3.2.2"
+      },
+      {
+        "name": "Tomcat",
+        "version": "8.0.24"
+      }
+    ],
+    "source": {
+      "type": "image",
+      "origin": "codenvy/ubuntu_jdk8"
+    },
+    "workspaceConfig": {
+      "environments": {
+        "default" : {
+          "machines": {
+            "devmachine": {
+              "agents": [
+                "ws-agent"
+              ]
+            }
+          },
+          "recipe": {
+            "location": "https://gist.githubusercontent.com/garagatyi/c4cb347b62e9eb8297cc59540ca5b3df/raw/04258a7f268d4a56446de968bde1572ca70f10d0/gistfile1.txt",
+            "contentType": "application/x-yaml",
+            "type": "compose"
+          }
+        }
+      },
+      "name": "default",
+      "defaultEnv": "default",
+      "description": null,
+      "commands": [
+        {
+          "commandLine": "mvn clean install -f ${current.project.path}",
+          "name": "newMaven",
+          "type": "mvn"
+        }
+      ]
+    },
+    "acl": [
+      {
+        "user": "*",
+        "actions": [
+          "search"
+        ]
+      }
+    ],
+    "stackIcon": {
+      "name": "type-java.svg",
+      "mediaType": "image/svg+xml"
+    }
+  }
 ]
