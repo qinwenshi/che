@@ -11,6 +11,7 @@
 package org.eclipse.che.api.workspace.server.model.impl;
 
 import org.eclipse.che.api.core.model.workspace.ExtendedMachine;
+import org.eclipse.che.api.core.model.workspace.ServerConf2;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,18 +27,29 @@ public class ExtendedMachineImpl implements ExtendedMachine {
     private Map<String, ServerConf2Impl> servers;
 
     public ExtendedMachineImpl(List<String> agents,
-                               Map<String, ServerConf2Impl> servers) {
-        this.agents = new ArrayList<>(agents);
-        this.servers = servers;
+                               Map<String, ? extends ServerConf2> servers) {
+        if (agents != null) {
+            this.agents = new ArrayList<>(agents);
+        }
+        if (servers != null) {
+            this.servers = servers.entrySet()
+                                  .stream()
+                                  .collect(Collectors.toMap(Map.Entry::getKey,
+                                                            entry -> new ServerConf2Impl(entry.getValue())));
+        }
     }
 
     public ExtendedMachineImpl(ExtendedMachine machine) {
-        this.agents = new ArrayList<>(machine.getAgents());
-        this.servers = machine.getServers()
-                              .entrySet()
-                              .stream()
-                              .collect(Collectors.toMap(Map.Entry::getKey,
-                                                        entry -> new ServerConf2Impl(entry.getValue())));
+        if (machine.getAgents() != null) {
+            this.agents = new ArrayList<>(machine.getAgents());
+        }
+        if (machine.getServers() != null) {
+            this.servers = machine.getServers()
+                                  .entrySet()
+                                  .stream()
+                                  .collect(Collectors.toMap(Map.Entry::getKey,
+                                                            entry -> new ServerConf2Impl(entry.getValue())));
+        }
     }
 
     @Override

@@ -48,22 +48,42 @@ public class ComposeServiceImpl implements ComposeService {
 
     public ComposeServiceImpl() {}
 
-    public ComposeServiceImpl(ComposeServiceImpl service) {
+    public ComposeServiceImpl(ComposeService service) {
         image = service.getImage();
         if (service.getBuild() != null) {
             build = new BuildContextImpl(service.getBuild());
         }
-        entrypoint = service.getEntrypoint();
-        command = service.getCommand();
-        environment = service.getEnvironment();
-        dependsOn = service.getDependsOn();
+        if (service.getEntrypoint() != null) {
+            entrypoint = new ArrayList<>(service.getEntrypoint());
+        }
+        if (service.getCommand() != null) {
+            command = new ArrayList<>(service.getCommand());
+        }
+        if (service.getEnvironment() != null) {
+            environment = new HashMap<>(service.getEnvironment());
+        }
+        if (service.getDependsOn() != null) {
+            dependsOn = new ArrayList<>(service.getDependsOn());
+        }
         containerName = service.getContainerName();
-        links = service.getLinks();
-        labels = service.getLabels();
-        expose = service.getExpose();
-        ports = service.getPorts();
-        volumesFrom = service.getVolumesFrom();
-        volumes = service.getVolumes();
+        if (service.getLinks() != null) {
+            links = new ArrayList<>(service.getLinks());
+        }
+        if (service.getLabels() != null) {
+            labels = new HashMap<>(service.getLabels());
+        }
+        if (service.getExpose() != null) {
+            expose = new ArrayList<>(service.getExpose());
+        }
+        if (service.getPorts() != null) {
+            ports = new ArrayList<>(service.getPorts());
+        }
+        if (service.getVolumesFrom() != null) {
+            volumesFrom = new ArrayList<>(service.getVolumesFrom());
+        }
+        if (service.getVolumes() != null) {
+            volumes = new ArrayList<>(service.getVolumes());
+        }
         memLimit = service.getMemLimit();
     }
 

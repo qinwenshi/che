@@ -11,6 +11,8 @@
 package org.eclipse.che.api.workspace.server.model.impl;
 
 import org.eclipse.che.api.core.model.workspace.Environment;
+import org.eclipse.che.api.core.model.workspace.EnvironmentRecipe;
+import org.eclipse.che.api.core.model.workspace.ExtendedMachine;
 
 import java.util.Map;
 import java.util.Objects;
@@ -25,19 +27,32 @@ public class EnvironmentImpl implements Environment {
     private EnvironmentRecipeImpl            recipe;
     private Map<String, ExtendedMachineImpl> machines;
 
-    public EnvironmentImpl(EnvironmentRecipeImpl recipe,
-                           Map<String, ExtendedMachineImpl> machines) {
-        this.recipe = recipe;
-        this.machines = machines;
+    public EnvironmentImpl() {}
+
+    public EnvironmentImpl(EnvironmentRecipe recipe,
+                           Map<String, ? extends ExtendedMachine> machines) {
+        if (recipe != null) {
+            this.recipe = new EnvironmentRecipeImpl(recipe);
+        }
+        if (machines != null) {
+            this.machines = machines.entrySet()
+                                    .stream()
+                                    .collect(Collectors.toMap(Map.Entry::getKey,
+                                                              entry -> new ExtendedMachineImpl(entry.getValue())));
+        }
     }
 
     public EnvironmentImpl(Environment environment) {
-        this.recipe = new EnvironmentRecipeImpl(environment.getRecipe());
-        this.machines = environment.getMachines()
-                                   .entrySet()
-                                   .stream()
-                                   .collect(Collectors.toMap(Map.Entry::getKey,
-                                                             entry -> new ExtendedMachineImpl(entry.getValue())));
+        if (environment.getRecipe() != null) {
+            this.recipe = new EnvironmentRecipeImpl(environment.getRecipe());
+        }
+        if (environment.getMachines() != null) {
+            this.machines = environment.getMachines()
+                                       .entrySet()
+                                       .stream()
+                                       .collect(Collectors.toMap(Map.Entry::getKey,
+                                                                 entry -> new ExtendedMachineImpl(entry.getValue())));
+        }
     }
 
     public EnvironmentRecipeImpl getRecipe() {

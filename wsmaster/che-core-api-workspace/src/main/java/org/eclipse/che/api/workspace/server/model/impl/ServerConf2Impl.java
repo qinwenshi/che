@@ -29,13 +29,17 @@ public class ServerConf2Impl implements ServerConf2 {
                            Map<String, String> properties) {
         this.port = port;
         this.protocol = protocol;
-        this.properties = new HashMap<>(properties);
+        if (properties != null) {
+            this.properties = new HashMap<>(properties);
+        }
     }
 
     public ServerConf2Impl(ServerConf2 serverConf) {
         this.port = serverConf.getPort();
         this.protocol = serverConf.getProtocol();
-        this.properties = new HashMap<>(serverConf.getProperties());
+        if (serverConf.getProperties() != null) {
+            this.properties = new HashMap<>(serverConf.getProperties());
+        }
     }
 
     @Override

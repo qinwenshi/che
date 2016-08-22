@@ -148,11 +148,13 @@ public final class DtoConverter {
     /** Converts {@link Environment} to {@link EnvironmentDto}. */
     public static EnvironmentDto asDto(Environment env) {
         final EnvironmentDto envDto = newDto(EnvironmentDto.class);
-        envDto.withMachines(env.getMachines()
-                               .entrySet()
-                               .stream()
-                               .collect(toMap(Map.Entry::getKey,
-                                              entry -> asDto(entry.getValue()))));
+        if (env.getMachines() != null) {
+            envDto.withMachines(env.getMachines()
+                                   .entrySet()
+                                   .stream()
+                                   .collect(toMap(Map.Entry::getKey,
+                                                  entry -> asDto(entry.getValue()))));
+        }
         if (env.getRecipe() != null) {
             envDto.withRecipe(newDto(EnvironmentRecipeDto.class).withType(env.getRecipe().getType())
                                                                 .withContentType(env.getRecipe().getContentType())
@@ -164,12 +166,15 @@ public final class DtoConverter {
 
     /** Converts {@link ExtendedMachine} to {@link ExtendedMachineDto}. */
     public static ExtendedMachineDto asDto(ExtendedMachine machine) {
-        return newDto(ExtendedMachineDto.class).withAgents(machine.getAgents())
-                                               .withServers(machine.getServers()
-                                                                   .entrySet()
-                                                                   .stream()
-                                                                   .collect(toMap(Map.Entry::getKey,
-                                                                                  entry -> asDto(entry.getValue()))));
+        ExtendedMachineDto machineDto = newDto(ExtendedMachineDto.class).withAgents(machine.getAgents());
+        if (machine.getServers() != null) {
+            machineDto.withServers(machine.getServers()
+                                          .entrySet()
+                                          .stream()
+                                          .collect(toMap(Map.Entry::getKey,
+                                                         entry -> asDto(entry.getValue()))));
+        }
+        return machineDto;
     }
 
     /** Converts {@link ServerConf2} to {@link ServerConf2Dto}. */
