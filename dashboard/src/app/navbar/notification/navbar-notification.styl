@@ -1,22 +1,48 @@
-.navbar-notification
+.navbar-notification-container
   position relative
   cursor pointer
   outline none
-  font-size 9pt
+  margin-right 20px
+
+.navbar-notification-icon
+  font-size 20px
+  color $navbar-menu-icon-color
+
+.navbar-notification
+  width 350px
+  min-height 50px
+  height 100%
+  margin 0px 20px
+
+.navbar-notification:not(:last-of-type)
+  border-bottom 1px solid $list-separator-color
+  margin-bottom 10px
+
+.navbar-notification-title
+  margin 0px 0px 3px 0px
+  padding 0px
 
 .navbar-notification-title-error
   color $error-color
 
-.navbar-notification-title-icon
-  margin-right 20px
-  font-size 9pt
+.navbar-notification-title-warning
+  color $warning-color
 
-.navbar-notification-icon
-  font-size 24px
+.navbar-notification-title-info
+  color $secondary-color
+
+.navbar-notification-title-icon
+  margin-right 15px
+  font-size 18px
 
 .navbar-notification-content
+  margin 0px
   padding 0px
-  color $
+  word-wrap break-word
+  white-space normal
+  overflow hidden
+  text-overflow ellipsis
+  color $label-secondary-color
 
 .navbar-notification-count
   font-size 8pt
@@ -30,7 +56,4 @@
   right -2px
   top 0px
 
-.navbar-notification-separator
-  background-color $list-separator-color
-  height 1px
-  margin 5px 20px
+

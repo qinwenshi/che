@@ -21,9 +21,17 @@ export class NavbarNotificationController {
    * Default constructor that is using resource
    * @ngInject for Dependency injection
    */
-  constructor() {
+  constructor(cheSystemNotification) {
+    this.cheSystemNotification = cheSystemNotification;
   }
 
+  getNotificationsCount() {
+    return this.cheSystemNotification.getNotifications().length;
+  }
+
+  getNotifications() {
+    return this.cheSystemNotification.getNotifications();
+  }
 }
 
 
