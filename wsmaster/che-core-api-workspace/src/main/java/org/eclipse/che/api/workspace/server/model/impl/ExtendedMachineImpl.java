@@ -26,6 +26,8 @@ public class ExtendedMachineImpl implements ExtendedMachine {
     private List<String>                 agents;
     private Map<String, ServerConf2Impl> servers;
 
+    public ExtendedMachineImpl() {}
+
     public ExtendedMachineImpl(List<String> agents,
                                Map<String, ? extends ServerConf2> servers) {
         if (agents != null) {
