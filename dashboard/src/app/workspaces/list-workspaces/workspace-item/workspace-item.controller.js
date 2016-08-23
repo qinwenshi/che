@@ -40,14 +40,14 @@ export class WorkspaceItemCtrl {
   }
 
   getMemoryLimit(workspace) {
-    if (workspace.runtime && workspace.runtime.machines && workspace.runtime.machines.length > 0) {
+    /* TODO not implemented yet if (workspace.runtime && workspace.runtime.machines && workspace.runtime.machines.length > 0) {
       let limits = this.lodash.pluck(workspace.runtime.machines, 'config.limits.ram');
       let total = 0;
       limits.forEach((limit) => {
         total += limit;
       });
       return total + ' MB';
-    }
+    }*/
 
     return '';
   }
