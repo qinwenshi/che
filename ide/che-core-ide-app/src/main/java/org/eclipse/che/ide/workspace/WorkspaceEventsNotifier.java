@@ -12,6 +12,7 @@ package org.eclipse.che.ide.workspace;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.gwt.core.client.Callback;
+import com.google.gwt.user.client.Timer;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
@@ -169,21 +170,28 @@ public class WorkspaceEventsNotifier {
     }
 
     private void onWorkspaceStarting(final String workspaceId) {
-        workspaceServiceClient.getWorkspace(workspaceId).then(new Operation<WorkspaceDto>() {
+        // TODO timer is a workaround. Is needed because for some reason after receiving of event workspace starting
+        // get workspace event should contain runtime but it doesn't
+        new Timer() {
             @Override
-            public void apply(WorkspaceDto workspace) throws OperationException {
-                String devMachineName = getDevMachineName(workspace);
-                if (devMachineName != null) {
-                    subscribeOnWsAgentOutputChannel(workspace, devMachineName);
-                }
+            public void run() {
+                workspaceServiceClient.getWorkspace(workspaceId).then(new Operation<WorkspaceDto>() {
+                    @Override
+                    public void apply(WorkspaceDto workspace) throws OperationException {
+                        String devMachineName = getDevMachineName(workspace);
+                        if (devMachineName != null) {
+                            subscribeOnWsAgentOutputChannel(workspace, devMachineName);
+                        }
 
-                workspaceComponent.setCurrentWorkspace(workspace);
-                machineManagerProvider.get();
+                        workspaceComponent.setCurrentWorkspace(workspace);
+                        machineManagerProvider.get();
 
-                initialLoadingInfo.setOperationStatus(WORKSPACE_BOOTING.getValue(), IN_PROGRESS);
-                eventBus.fireEvent(new WorkspaceStartingEvent(workspace));
+                        initialLoadingInfo.setOperationStatus(WORKSPACE_BOOTING.getValue(), IN_PROGRESS);
+                        eventBus.fireEvent(new WorkspaceStartingEvent(workspace));
+                    }
+                });
             }
-        });
+        }.schedule(1000);
     }
 
     private void onWorkspaceStarted(final String workspaceId) {
